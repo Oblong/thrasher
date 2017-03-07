@@ -84,8 +84,8 @@ namespace {
 
       // NOTE - this logic is specifically for our usage pattern. It is not
       // general-purpose.
-      stuff_happened = true;
       if (nullptr != data && level == 0) {
+        stuff_happened = true;
         log.write("playback.create_quad(%d, %d, %d);\n", id, width, height);
       }
       callback(target, level, internalFormat, width, height, border, format, type, data);
@@ -108,8 +108,8 @@ namespace {
       // should be no-ops.
       stuff_happened = true;
       for (int i = 0; i < n; i++) {
-        auto id = texture_ids[i];
-        log.write("playback.delete_quad(%d);\n", n, id);
+        GLuint id = texture_ids[i];
+        log.write("playback.delete_quad(%d);\n", id);
       }
 
       callback(n, texture_ids);
