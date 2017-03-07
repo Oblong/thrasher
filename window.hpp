@@ -23,6 +23,11 @@ namespace forensics {
     private:
       int loaded;
     };
+
+    inline void window_size_callback(GLFWwindow *window, int width, int height) {
+      printf("w: %d, h: %d\n", width, height);
+      glViewport(0, 0, width, height);
+    }
   }
 
   template <typename Callback>
@@ -39,6 +44,10 @@ namespace forensics {
 
     glfwMakeContextCurrent(window.get());
 
+    // Do our best to keep the viewport sane
+    glfwSetWindowSizeCallback(window.get(), &detail::window_size_callback);
+    glfwGetWindowSize(window.get(), &width, &height);
+    printf("w: %d, h: %d\n", width, height);
     glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION);
