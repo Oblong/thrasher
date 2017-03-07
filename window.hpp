@@ -1,12 +1,12 @@
-#ifndef RUNNER_H
-#define RUNNER_H
+#ifndef UUID_F18C895E_08D7_466A_BA71_BD328E26DCA9
+#define UUID_F18C895E_08D7_466A_BA71_BD328E26DCA9
 
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <memory>
 
-namespace freeze {
+namespace forensics {
   namespace detail {
     class GLFWWrapper {
     public:
