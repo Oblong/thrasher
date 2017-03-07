@@ -1,8 +1,3 @@
-// Compile like this:
-// g++ -std=c++14 -fPIC -shared -o teximage-preload.so teximage-preload.c -ldl
-// Add this to /lib/systemd/system/siemcy.service:
-// Environment=LD_PRELOAD=/path/to/teximage-preload.so
-
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
