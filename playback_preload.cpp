@@ -67,7 +67,7 @@ namespace {
 
   class Inspector final {
   private:
-    static GLint current_texture_id() {
+    static GLuint current_texture_id() {
       GLint id;
       glGetIntegerv(GL_TEXTURE_BINDING_2D, &id);
       return id;
@@ -85,7 +85,7 @@ namespace {
       GLenum target, GLint level, GLint internalFormat, GLsizei width,
       GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data
     ) {
-      if (nullptr != data) {
+      //if (nullptr != data) {
         auto id = current_texture_id();
 
         stuff_happened = true;
@@ -95,7 +95,7 @@ namespace {
         tex_ids[id] = true;
 
         log.write("playback.mip_upload(%d, %d, %d, %d);\n", id, level, width, height);
-      }
+      //}
       callback(target, level, internalFormat, width, height, border, format, type, data);
     }
 
