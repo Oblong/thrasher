@@ -85,17 +85,19 @@ namespace {
       GLenum target, GLint level, GLint internalFormat, GLsizei width,
       GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data
     ) {
-      //if (nullptr != data) {
-        auto id = current_texture_id();
+      auto id = current_texture_id();
 
-        stuff_happened = true;
-        if (!tex_ids[id]) {
-          log.write("playback.create_texture(%d);\n", id);
-        }
-        tex_ids[id] = true;
+      stuff_happened = true;
+      if (!tex_ids[id]) {
+        log.write("playback.create_texture(%d);\n", id);
+      }
+      tex_ids[id] = true;
 
+      if (nullptr == data) {
+        log.write("playback.mip_reserve(%d, %d, %d, %d);\n", id, level, width, height);
+      } else {
         log.write("playback.mip_upload(%d, %d, %d, %d);\n", id, level, width, height);
-      //}
+      }
       callback(target, level, internalFormat, width, height, border, format, type, data);
     }
 
@@ -125,7 +127,7 @@ namespace {
     template <typename Callback>
     void onSwap (Callback callback, Display *dpy, GLXDrawable drawable) {
       if (stuff_happened) {
-        log.write("playback.swap();\n");
+        log.write("playback.draw();\n");
       }
       callback(dpy, drawable);
       stuff_happened = GL_FALSE;

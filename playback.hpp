@@ -41,6 +41,10 @@ namespace freeze {
 
     glViewport(0, 0, width, height);
 
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+
     return callback([window = std::move(window)] { glfwSwapBuffers(window.get()); });
   }
 }
