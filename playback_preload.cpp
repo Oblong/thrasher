@@ -88,29 +88,22 @@ namespace {
       auto id = current_texture_id();
 
       stuff_happened = true;
-      if (!tex_ids[id]) {
-        log.write("playback.create_texture(%d);\n", id);
-      }
-      tex_ids[id] = true;
-
-      if (nullptr == data) {
-        log.write("playback.mip_reserve(%d, %d, %d, %d);\n", id, level, width, height);
-      } else {
-        log.write("playback.mip_upload(%d, %d, %d, %d);\n", id, level, width, height);
+      if (nullptr != data && level == 0) {
+        log.write("playback.create_texture(%d, %d, %d);\n", id, width, height);
       }
       callback(target, level, internalFormat, width, height, border, format, type, data);
     }
 
-    template <typename Callback>
-    void onTexSubImage2D (
-      Callback callback,
-      GLenum target, GLint level, GLint xoffset, GLint yoffset,
-      GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data
-    ) {
-      stuff_happened = true;
-      log.write("playback.update_mip(%d, %d, %d, %d, %d, %d)", current_texture_id(), level, xoffset, yoffset, width, height);
-      callback(target, level, xoffset, yoffset, width, height, format, type, data);
-    }
+    //template <typename Callback>
+    //void onTexSubImage2D (
+    //  Callback callback,
+    //  GLenum target, GLint level, GLint xoffset, GLint yoffset,
+    //  GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data
+    //) {
+    //  //stuff_happened = true;
+    //  //log.write("playback.update_mip(%d, %d, %d, %d, %d, %d)", current_texture_id(), level, xoffset, yoffset, width, height);
+    //  callback(target, level, xoffset, yoffset, width, height, format, type, data);
+    //}
 
     template <typename Callback>
     void onDeleteTextures (Callback callback, GLsizei n, const GLuint *texture_ids) {
@@ -118,7 +111,6 @@ namespace {
       for (int i = 0; i < n; i++) {
         auto id = texture_ids[i];
         log.write("playback.delete_texture(%d);\n", n, id);
-        tex_ids[id] = false;
       }
 
       callback(n, texture_ids);
@@ -137,7 +129,6 @@ namespace {
     Inspector() = default;
 
     bool stuff_happened = false;
-    std::array<bool, 10000> tex_ids{};
     Logger log{};
   };
 }
@@ -157,17 +148,17 @@ extern "C" void glTexImage2D (
   });
 }
 
-extern "C" void glTexSubImage2D (
-  GLenum target, GLint level, GLint xoffset, GLint yoffset,
-  GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data
-) {
-  static auto loader = DYNAMIC_LOADER(glTexSubImage2D);
-  loader([=](auto callback) {
-    Inspector::instance().onTexSubImage2D(
-      callback, target, level, xoffset, yoffset, width, height, format, type, data
-    );
-  });
-}
+//extern "C" void glTexSubImage2D (
+//  GLenum target, GLint level, GLint xoffset, GLint yoffset,
+//  GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data
+//) {
+//  static auto loader = DYNAMIC_LOADER(glTexSubImage2D);
+//  loader([=](auto callback) {
+//    Inspector::instance().onTexSubImage2D(
+//      callback, target, level, xoffset, yoffset, width, height, format, type, data
+//    );
+//  });
+//}
 
 extern "C" void glXSwapBuffers (Display *dpy, GLXDrawable drawable) {
   static auto loader = DYNAMIC_LOADER(glXSwapBuffers);

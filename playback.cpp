@@ -85,80 +85,150 @@ namespace {
       std::unique_ptr<Buffer> texture_buffer = std::make_unique<Buffer>();
     };
 
-    class TextureHandles {
+    class TextureHandle final {
     public:
-      TextureHandles() = default;
-      TextureHandles(TextureHandles const &) = delete;
-      TextureHandles(TextureHandles&&) = default;
-      TextureHandles &operator=(TextureHandles const &) = delete;
-      TextureHandles &operator=(TextureHandles&&) = default;
-      ~TextureHandles() {
-        for (auto handle : handles) {
-          if (handle.second != 0) {
-            glDeleteTextures(1, &handle.second);
-          }
-        }
+      TextureHandle(GLuint handle_) : handle{handle_} {}
+      TextureHandle(TextureHandle const&) = delete;
+      TextureHandle(TextureHandle && other) : handle{other.handle} {
+        other.handle = 0;
+      }
+      TextureHandle &operator=(TextureHandle const&) = delete;
+      TextureHandle &operator=(TextureHandle && other) {
+        handle = other.handle;
+        other.handle = 0;
+        return *this;
+      }
+      ~TextureHandle() {
+        if (0 != handle) glDeleteTextures(1, &handle);
       }
 
-      auto begin() const { return handles.begin(); }
-      auto end() const { return handles.end(); }
+      operator bool() const {
+        return handle != 0;
+      }
 
-      auto erase(std::size_t id) { handles.erase(id); }
+      GLuint get() const {
+        return handle;
+      }
+    private:
+      GLuint handle;
+    };
 
-      GLuint &operator[](std::size_t id) { return handles[id]; }
+    template <std::size_t max_texture_bytes>
+    class FakeTexture final {
+      static constexpr std::size_t bytes_per_texel = 4;
+    public:
+      static FakeTexture create(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker) {
+        GLuint handle;
+
+        glGenTextures(1, &handle);
+        if (0 == handle) return FakeTexture{handle};
+
+        GLsizei num_mips = std::log2(std::min(width, height));
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, handle);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, num_mips);
+
+        for (GLsizei level = 0; level <= num_mips; ++level) {
+          auto size = width * height * bytes_per_texel;
+          faker.recolor(size, [=](auto data) {
+            glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+          });
+          width /= 2;
+          height /= 2;
+        }
+
+        return FakeTexture{handle};
+      }
+
+      GLuint handle() const { return raii_handle.get(); }
+
+      operator bool() const {
+        return raii_handle;
+      }
+    private:
+      FakeTexture(GLuint handle_) : raii_handle{handle_} {}
+      TextureHandle raii_handle;
+    };
+
+    template <std::size_t max_texture_bytes>
+    class RandomQuad final {
+    public:
+      RandomQuad(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
+        : texture{FakeTexture<max_texture_bytes>::create(width, height, faker)}
+        , float_generator{-1.0f, 1.0f}
+      {}
+
+      operator bool() const {
+        return texture;
+      }
+
+      void draw() {
+        if (!texture) return;
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, texture.handle());
+
+        glBegin(GL_QUADS);
+
+        float left = float_generator();
+        float right = float_generator();
+        float top = float_generator();
+        float bottom = float_generator();
+
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex2f(left, bottom);
+
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex2f(right, bottom);
+
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex2f(right, top);
+
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex2f(left, top);
+
+        glEnd();
+      }
 
     private:
-      std::unordered_map<std::size_t, GLuint> handles{};
+      RandFloat float_generator;
+      FakeTexture<max_texture_bytes> texture;
     };
   }
 
   template <typename Swapper>
   class Playback final {
     static constexpr std::size_t max_texture_bytes = 101782080;
-    static constexpr std::size_t bytes_per_texel = 4;
 
   public:
     Playback(Swapper const &swap_buffers_)
-      : texture_handles{}
+      : quads{}
       , swap_buffers{std::move(swap_buffers_)}
-      , float_generator{-1.0f, 1.0f}
       , faker{}
     {}
 
-    void create_texture(std::size_t id, GLsizei width, GLsizei height) {
-      GLsizei num_mips = std::log2(std::min(width, height));
-      glGenTextures(1, &(texture_handles[id]));
-      glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, texture_handles[id]);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, num_mips);
-
-      for (GLsizei level = 0; level <= num_mips; ++level) {
-        auto size = width * height * bytes_per_texel;
-        faker.recolor(size, [=](auto data) {
-          glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        });
-        width /= 2;
-        height /= 2;
-      }
+    void create_quad(std::size_t id, GLsizei width, GLsizei height) {
+      // Yeah, this is overkill.
+      quads.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(id),
+        std::forward_as_tuple(width, height, faker)
+      );
     }
 
-    void delete_texture(std::size_t id) {
-      auto handle = texture_handles[id];
-      if (0 != handle) glDeleteTextures(1, &handle);
-      texture_handles.erase(id);
+    void delete_quad(std::size_t id) {
+      quads.erase(id);
     }
 
     void draw() {
-      for (auto pair : texture_handles) {
-        GLuint handle = pair.second;
-        if (handle != 0) {
-          draw_rectangle(handle);
-        }
+      for (auto &pair : quads) {
+        auto &quad = pair.second;
+        quad.draw();
       }
 
       auto err = glGetError();
@@ -170,42 +240,8 @@ namespace {
     }
 
   private:
-    void draw_rectangle(GLuint handle) {
-      glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, handle);
-
-      glBegin(GL_QUADS);
-
-      float left = float_generator();
-      float right = float_generator();
-      float top = float_generator();
-      float bottom = float_generator();
-
-      glTexCoord2f(0.0f, 0.0f);
-      glVertex2f(left, bottom);
-
-      glTexCoord2f(1.0f, 0.0f);
-      glVertex2f(right, bottom);
-
-      glTexCoord2f(1.0f, 1.0f);
-      glVertex2f(right, top);
-
-      glTexCoord2f(0.0f, 1.0f);
-      glVertex2f(left, top);
-
-      glEnd();
-    }
-
-    void mip_helper(std::size_t id, GLint level, GLsizei width, GLsizei height, void *data) {
-      glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, texture_handles[id]);
-
-      glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    }
-
-    detail::TextureHandles texture_handles;
+    std::unordered_map<std::size_t, detail::RandomQuad<max_texture_bytes>> quads;
     Swapper const &swap_buffers;
-    detail::RandFloat float_generator;
     detail::BufferFaker<max_texture_bytes> faker;
   };
 
@@ -227,7 +263,7 @@ int main() {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        playback.create_texture(1, 132, 37);
+        playback.create_quad(1, 132, 37);
 
         playback.draw();
 
