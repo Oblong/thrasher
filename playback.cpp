@@ -4,6 +4,7 @@
 #include <array>
 #include <chrono>
 #include <random>
+#include <thread>
 #include <unordered_map>
 #include <GL/gl.h>
 
@@ -15,20 +16,33 @@ namespace {
   namespace detail {
     class RandFloat final {
     public:
-      RandFloat(std::random_device &rd) : mt{rd()} {}
+      RandFloat(float low, float high) : mt{std::random_device{}()}, dist{low, high} {}
       float operator()() {
         return dist(mt);
       }
     private:
       std::mt19937 mt;
-      std::uniform_real_distribution<float> dist{0.0f, 1.0f};
+      std::uniform_real_distribution<float> dist;
+    };
+
+    class RandByte final {
+    public:
+      GLbyte operator()() {
+        return dist(mt);
+      }
+    private:
+      std::mt19937 mt{std::random_device{}()};
+      std::uniform_int_distribution<unsigned short> dist{
+        std::numeric_limits<unsigned char>::min(),
+        std::numeric_limits<unsigned char>::max()
+      };
     };
 
     class Filler final {
     public:
-      Filler(RandFloat &generator) : r{generator()}, g{generator()}, b{generator()}, a{generator()} {}
+      Filler(RandByte &generator) : r{generator()}, g{generator()}, b{generator()}, a{generator()} {}
 
-      float operator()() {
+      GLbyte operator()() {
         auto mod = count % 4;
         ++count;
         if (mod == 0) {
@@ -40,19 +54,18 @@ namespace {
         } else if (mod == 3) {
           return a;
         }
+        fprintf(stderr, "Color filler failure\n");
         return 0.0f;
       }
 
     private:
       std::size_t count = 0;
-      float r, g, b, a;
+      GLbyte r, g, b, a;
     };
 
     template <std::size_t max_texture_bytes>
     class BufferFaker {
     public:
-      BufferFaker(detail::RandFloat &color_generator_) : color_generator{color_generator_} {}
-
       template <typename Callback>
       void recolor(std::size_t size, Callback callback) {
         if (size > max_texture_bytes) {
@@ -60,14 +73,13 @@ namespace {
           return;
         }
 
-        auto data = texture_buffer->data();
         std::generate(texture_buffer->begin(), texture_buffer->begin() + size, detail::Filler{color_generator});
 
         callback(texture_buffer->data());
       }
 
     private:
-      detail::RandFloat &color_generator;
+      detail::RandByte color_generator{};
       using Buffer = std::array<GLbyte, max_texture_bytes>;
       std::unique_ptr<Buffer> texture_buffer = std::make_unique<Buffer>();
     };
@@ -105,15 +117,23 @@ namespace {
     static constexpr std::size_t bytes_per_texel = 4;
 
   public:
-    Playback(std::random_device &rd, Swapper swap_buffers_)
+    Playback(Swapper const &swap_buffers_)
       : texture_handles{}
       , swap_buffers{std::move(swap_buffers_)}
-      , float_generator{rd}
-      , faker{float_generator}
+      , float_generator{-1.0f, 1.0f}
+      , faker{}
     {}
 
     void create_texture(std::size_t id) {
-      glGenTextures(1, &texture_handles[id]);
+      glGenTextures(1, &(texture_handles[id]));
+      glEnable(GL_TEXTURE_2D);
+      glBindTexture(GL_TEXTURE_2D, texture_handles[id]);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 5);
     }
 
     void mip_reserve(std::size_t id, GLint level, GLsizei width, GLsizei height) {
@@ -151,7 +171,7 @@ namespace {
     }
 
     void delete_texture(std::size_t id) {
-      glDeleteTextures(1, &texture_handles[id]);
+      glDeleteTextures(1, &(texture_handles[id]));
       texture_handles.erase(id);
     }
 
@@ -163,18 +183,18 @@ namespace {
         }
       }
 
+      auto err = glGetError();
+      if (err != 0) {
+        fprintf(stderr, "GL ERROR: %d\n", err);
+      }
+
       swap_buffers();
     }
 
   private:
     void draw_rectangle(GLuint handle) {
-      // Bind Texture
-      glBindTexture (GL_TEXTURE_2D, handle);
-
-      // Render Settings
       glEnable(GL_TEXTURE_2D);
-      //glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-      //glColor3ub(255,255,255);
+      glBindTexture(GL_TEXTURE_2D, handle);
 
       glBegin(GL_QUADS);
 
@@ -183,20 +203,16 @@ namespace {
       float top = float_generator();
       float bottom = float_generator();
 
-      // Top Left
-      glTexCoord2f(0.0f, 1.0f);
+      glTexCoord2f(0.0f, 0.0f);
       glVertex2f(left, bottom);
 
-      // Top Right
-      glTexCoord2f(1.0f, 1.0f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex2f(right, bottom);
 
-      // Bottom Right
-      glTexCoord2f(1.0f, 0.0f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex2f(right, top);
 
-      // Bottom Left
-      glTexCoord2f(0.0f, 0.0f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex2f(left, top);
 
       glEnd();
@@ -205,54 +221,46 @@ namespace {
     void mip_helper(std::size_t id, GLint level, GLsizei width, GLsizei height, void *data) {
       glEnable(GL_TEXTURE_2D);
       glBindTexture(GL_TEXTURE_2D, texture_handles[id]);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
       glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     }
 
     detail::TextureHandles texture_handles;
-    Swapper swap_buffers;
+    Swapper const &swap_buffers;
     detail::RandFloat float_generator;
     detail::BufferFaker<max_texture_bytes> faker;
   };
 
   template <typename Swapper>
-  Playback<Swapper> make_playback(std::random_device &rd, Swapper swapper) {
-    return {rd, std::move(swapper)};
+  Playback<Swapper> make_playback(Swapper const &swapper) {
+    return {swapper};
   }
 }
 
 int main() {
   bool result = freeze::openWindow(
     //1920 * 3, 1080, "THEFREEZE",
-    100, 100, "THEFREEZE",
+    500, 500, "THEFREEZE",
     [](auto swap_buffers) {
-      std::random_device rd{};
-
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
       while (true) {
-        auto playback = make_playback(rd, std::move(swap_buffers));
+        auto playback = make_playback(swap_buffers);
 
         glClear(GL_COLOR_BUFFER_BIT);
 
         playback.create_texture(1);
-        playback.mip_upload(1, 0, 8496, 2396);
-        playback.mip_upload(1, 1, 4248, 1198);
-        playback.mip_upload(1, 2, 2124, 599);
-        playback.mip_upload(1, 3, 1062, 299);
-        playback.mip_upload(1, 4, 531, 149);
-        playback.mip_upload(1, 5, 265, 74);
-        playback.mip_upload(1, 6, 132, 37);
-        playback.mip_upload(1, 7, 66, 18);
-        playback.mip_upload(1, 8, 33, 9);
-        playback.mip_upload(1, 9, 16, 4);
-        playback.mip_upload(1, 10, 8, 2);
-        playback.mip_upload(1, 11, 4, 1);
+        playback.mip_upload(1, 0, 132, 37);
+        playback.mip_upload(1, 1, 66, 18);
+        playback.mip_upload(1, 2, 33, 9);
+        playback.mip_upload(1, 3, 16, 4);
+        playback.mip_upload(1, 4, 8, 2);
+        playback.mip_upload(1, 5, 4, 1);
 
         playback.draw();
+
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(0.5s);
       }
 
       return true;
