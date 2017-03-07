@@ -87,9 +87,11 @@ namespace {
     ) {
       auto id = current_texture_id();
 
+      // NOTE - this logic is specifically for our usage pattern. It is not
+      // general-purpose.
       stuff_happened = true;
       if (nullptr != data && level == 0) {
-        log.write("playback.create_texture(%d, %d, %d);\n", id, width, height);
+        log.write("playback.create_quad(%d, %d, %d);\n", id, width, height);
       }
       callback(target, level, internalFormat, width, height, border, format, type, data);
     }
@@ -107,10 +109,12 @@ namespace {
 
     template <typename Callback>
     void onDeleteTextures (Callback callback, GLsizei n, const GLuint *texture_ids) {
+      // NOTE - this *will* create deletes for ids that we aren't tracking. They
+      // should be no-ops.
       stuff_happened = true;
       for (int i = 0; i < n; i++) {
         auto id = texture_ids[i];
-        log.write("playback.delete_texture(%d);\n", n, id);
+        log.write("playback.delete_quad(%d);\n", n, id);
       }
 
       callback(n, texture_ids);
