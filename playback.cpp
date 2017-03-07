@@ -32,6 +32,9 @@ namespace {
         return dist(mt);
       }
     private:
+      // Apparently there are defects in the standard surrounding generating
+      // random bytes. This is probably somewhat fishy, but it will have to do
+      // for now.
       std::mt19937 mt{std::random_device{}()};
       std::uniform_int_distribution<unsigned short> dist{
         std::numeric_limits<unsigned char>::min(),
@@ -56,7 +59,7 @@ namespace {
           return a;
         }
         fprintf(stderr, "Color filler failure\n");
-        return 0.0f;
+        return 0x00;
       }
 
     private:
