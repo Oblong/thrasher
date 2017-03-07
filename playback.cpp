@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <random>
 #include <thread>
 #include <unordered_map>
@@ -124,7 +125,8 @@ namespace {
       , faker{}
     {}
 
-    void create_texture(std::size_t id) {
+    void create_texture(std::size_t id, GLsizei width, GLsizei height) {
+      GLsizei num_mips = std::log2(std::min(width, height));
       glGenTextures(1, &(texture_handles[id]));
       glEnable(GL_TEXTURE_2D);
       glBindTexture(GL_TEXTURE_2D, texture_handles[id]);
@@ -133,45 +135,21 @@ namespace {
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 5);
-    }
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, num_mips);
 
-    void mip_reserve(std::size_t id, GLint level, GLsizei width, GLsizei height) {
-      auto size = width * height * bytes_per_texel;
-      if (size > max_texture_bytes) {
-        fprintf(stderr, "texture is too big!\n");
-        return;
+      for (GLsizei level = 0; level <= num_mips; ++level) {
+        auto size = width * height * bytes_per_texel;
+        faker.recolor(size, [=](auto data) {
+          glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        });
+        width /= 2;
+        height /= 2;
       }
-
-      mip_helper(id, level, width, height, nullptr);
-    }
-
-    void mip_upload(std::size_t id, GLint level, GLsizei width, GLsizei height) {
-      auto size = width * height * bytes_per_texel;
-      if (size > max_texture_bytes) {
-        fprintf(stderr, "texture is too big!\n");
-        return;
-      }
-
-      faker.recolor(size, [=](auto data) {
-        this->mip_helper(id, level, width, height, data);
-      });
-    }
-
-    void update_mip(std::size_t id, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height) {
-      auto size = width * height * bytes_per_texel;
-      if (size > max_texture_bytes) {
-        fprintf(stderr, "texture is too big!\n");
-        return;
-      }
-
-      faker.recolor(size, [=](auto data) {
-        glTexSubImage2D(GL_TEXTURE_2D, level, xoffset, yoffset, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-      });
     }
 
     void delete_texture(std::size_t id) {
-      glDeleteTextures(1, &(texture_handles[id]));
+      auto handle = texture_handles[id];
+      if (0 != handle) glDeleteTextures(1, &handle);
       texture_handles.erase(id);
     }
 
@@ -249,13 +227,7 @@ int main() {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        playback.create_texture(1);
-        playback.mip_upload(1, 0, 132, 37);
-        playback.mip_upload(1, 1, 66, 18);
-        playback.mip_upload(1, 2, 33, 9);
-        playback.mip_upload(1, 3, 16, 4);
-        playback.mip_upload(1, 4, 8, 2);
-        playback.mip_upload(1, 5, 4, 1);
+        playback.create_texture(1, 132, 37);
 
         playback.draw();
 
