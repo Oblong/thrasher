@@ -117,11 +117,13 @@ namespace {
     class FakeTexture final {
       static constexpr std::size_t bytes_per_texel = 4;
     public:
-      static FakeTexture create(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker) {
+      FakeTexture(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
+        : raii_handle{0}
+      {
         GLuint handle;
 
         glGenTextures(1, &handle);
-        if (0 == handle) return FakeTexture{handle};
+        if (0 == handle) return;
 
         GLsizei num_mips = std::log2(std::min(width, height));
         glEnable(GL_TEXTURE_2D);
@@ -142,7 +144,7 @@ namespace {
           height /= 2;
         }
 
-        return FakeTexture{handle};
+        raii_handle = handle;
       }
 
       GLuint handle() const { return raii_handle.get(); }
@@ -151,7 +153,6 @@ namespace {
         return raii_handle;
       }
     private:
-      FakeTexture(GLuint handle_) : raii_handle{handle_} {}
       TextureHandle raii_handle;
     };
 
@@ -159,7 +160,7 @@ namespace {
     class RandomQuad final {
     public:
       RandomQuad(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
-        : texture{FakeTexture<max_texture_bytes>::create(width, height, faker)}
+        : texture{width, height, faker}
         , float_generator{-1.0f, 1.0f}
       {}
 
