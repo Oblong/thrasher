@@ -7,9 +7,9 @@
 #include <unordered_map>
 #include <GL/gl.h>
 
-//#ifndef LOG_FILE
-//  #define LOG_FILE "/tmp/gl_playback.cpp"
-//#endif
+#ifndef LOG_FILE
+  #define LOG_FILE "/tmp/gl_playback.cpp"
+#endif
 
 namespace {
   template <typename Swapper>
@@ -37,6 +37,8 @@ namespace {
     }
 
     void draw() {
+      glClear(GL_COLOR_BUFFER_BIT);
+
       for (auto &pair : quads) {
         auto &quad = pair.second;
         quad.draw();
@@ -63,20 +65,16 @@ namespace {
 }
 
 int main() {
+  // TODO command line args
   bool result = forensics::openWindow(
-    //1920 * 3, 1080, "THEFREEZE",
-    500, 500, "THEFREEZE",
+    1920 * 3, 1080, "THEFREEZE",
     [](auto swap_buffers) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
       while (true) {
         auto playback = make_playback(swap_buffers);
 
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        playback.create_quad(1, 132, 37);
-
-        playback.draw();
+#include LOG_FILE
 
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(0.5s);
