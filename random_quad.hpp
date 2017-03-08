@@ -65,14 +65,14 @@ namespace forensics {
     }
     TextureHandle &operator=(TextureHandle const&) = delete;
     TextureHandle &operator=(TextureHandle && other) noexcept {
+      if (this == &other) return *this;
+      if (0 != handle) glDeleteTextures(1, &handle);
       handle = other.handle;
       other.handle = 0;
       return *this;
     }
     ~TextureHandle() {
-      if (0 != handle) {
-        glDeleteTextures(1, &handle);
-      }
+      if (0 != handle) glDeleteTextures(1, &handle);
     }
 
     operator bool() const {
