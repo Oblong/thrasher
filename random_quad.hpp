@@ -1,44 +1,18 @@
 #ifndef UUID_1E48FB08_4CBB_4468_8689_1DA8587E48D3
 #define UUID_1E48FB08_4CBB_4468_8689_1DA8587E48D3
 
+#include <random_helper.hpp>
+
 #include <GL/gl.h>
 
 #include <algorithm>
 #include <array>
 #include <memory>
-#include <random>
 
 namespace forensics {
-  class RandFloat final {
-  public:
-    RandFloat(float low, float high) : mt{std::random_device{}()}, dist{low, high} {}
-    float operator()() {
-      return dist(mt);
-    }
-  private:
-    std::mt19937 mt;
-    std::uniform_real_distribution<float> dist;
-  };
-
-  class RandByte final {
-  public:
-    GLbyte operator()() {
-      return dist(mt);
-    }
-  private:
-    // Apparently there are defects in the standard surrounding generating
-    // random bytes. This is probably somewhat fishy, but it will have to do
-    // for now.
-    std::mt19937 mt{std::random_device{}()};
-    std::uniform_int_distribution<unsigned short> dist{
-      std::numeric_limits<unsigned char>::min(),
-      std::numeric_limits<unsigned char>::max()
-    };
-  };
-
   class Filler final {
   public:
-    Filler(RandByte &generator) : r{generator()}, g{generator()}, b{generator()}, a{generator()} {}
+    Filler(RandomByte &generator) : r{generator()}, g{generator()}, b{generator()}, a{generator()} {}
 
     GLbyte operator()() {
       auto mod = count % 4;
@@ -62,12 +36,12 @@ namespace forensics {
   };
 
   template <std::size_t max_texture_bytes>
-  class BufferFaker {
+  class BufferFaker final {
   public:
     template <typename Callback>
     void recolor(std::size_t size, Callback callback) {
       if (size > max_texture_bytes) {
-        fprintf(stderr, "tried to fake a texture that is too big\n");
+        fprintf(stderr, "Tried to fake a texture of size %lu (max is %lu)\n", size, max_texture_bytes);
         return;
       }
 
@@ -77,7 +51,7 @@ namespace forensics {
     }
 
   private:
-    RandByte color_generator{};
+    RandomByte color_generator{};
     using Buffer = std::array<GLbyte, max_texture_bytes>;
     std::unique_ptr<Buffer> texture_buffer = std::make_unique<Buffer>();
   };
@@ -115,7 +89,8 @@ namespace forensics {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
     FakeTexture(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
-      : raii_handle{0}
+      : texture_size{0}
+      , raii_handle{0}
     {
       GLuint handle;
 
@@ -134,6 +109,7 @@ namespace forensics {
 
       for (GLsizei level = 0; level <= num_mips; ++level) {
         auto size = width * height * bytes_per_texel;
+        texture_size += size;
         faker.recolor(size, [=](auto data) {
           glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         });
@@ -149,7 +125,13 @@ namespace forensics {
     operator bool() const {
       return raii_handle;
     }
+
+    GLsizei size_bytes() const {
+      return texture_size;
+    }
+
   private:
+    GLsizei texture_size;
     TextureHandle raii_handle;
   };
 
@@ -193,8 +175,12 @@ namespace forensics {
       glEnd();
     }
 
+    std::size_t size_bytes() const {
+      return texture.size_bytes();
+    }
+
   private:
-    RandFloat float_generator;
+    RandomFloat float_generator;
     FakeTexture<max_texture_bytes> texture;
   };
 }
