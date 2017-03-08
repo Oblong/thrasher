@@ -60,17 +60,19 @@ namespace forensics {
   public:
     TextureHandle(GLuint handle_) : handle{handle_} {}
     TextureHandle(TextureHandle const&) = delete;
-    TextureHandle(TextureHandle && other) : handle{other.handle} {
+    TextureHandle(TextureHandle && other) noexcept : handle{other.handle} {
       other.handle = 0;
     }
     TextureHandle &operator=(TextureHandle const&) = delete;
-    TextureHandle &operator=(TextureHandle && other) {
+    TextureHandle &operator=(TextureHandle && other) noexcept {
       handle = other.handle;
       other.handle = 0;
       return *this;
     }
     ~TextureHandle() {
-      if (0 != handle) glDeleteTextures(1, &handle);
+      if (0 != handle) {
+        glDeleteTextures(1, &handle);
+      }
     }
 
     operator bool() const {
@@ -88,14 +90,12 @@ namespace forensics {
   class FakeTexture final {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
-    FakeTexture(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
-      : texture_size{0}
-      , raii_handle{0}
-    {
+    static FakeTexture create(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker) {
       GLuint handle;
 
+      GLsizei texture_size = 0;
       glGenTextures(1, &handle);
-      if (0 == handle) return;
+      if (0 == handle) return {texture_size, handle};
 
       GLsizei num_mips = std::log2(std::min(width, height));
       glEnable(GL_TEXTURE_2D);
@@ -117,7 +117,7 @@ namespace forensics {
         height /= 2;
       }
 
-      raii_handle = handle;
+      return {texture_size, handle};
     }
 
     GLuint handle() const { return raii_handle.get(); }
@@ -127,10 +127,13 @@ namespace forensics {
     }
 
     GLsizei size_bytes() const {
+      if (!raii_handle) return 0;
       return texture_size;
     }
 
   private:
+    FakeTexture(GLsizei texture_size_, GLuint handle_) : texture_size{texture_size_}, raii_handle{handle_} {}
+
     GLsizei texture_size;
     TextureHandle raii_handle;
   };
@@ -139,7 +142,7 @@ namespace forensics {
   class RandomQuad final {
   public:
     RandomQuad(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
-      : texture{width, height, faker}
+      : texture{FakeTexture<max_texture_bytes>::create(width, height, faker)}
       , float_generator{-1.0f, 1.0f}
     {}
 
