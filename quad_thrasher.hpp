@@ -16,7 +16,9 @@ namespace forensics {
       std::vector<std::size_t> sizes{};
       for (auto &quad : quads) { sizes.push_back(quad.size_bytes()); }
       std::size_t bytes_used = std::accumulate(begin(sizes), end(sizes), 0);
-      std::size_t headroom_bytes = max_requested_memory_bytes - bytes_used;
+      std::size_t delta_bytes = max_requested_memory_bytes / 4;
+      std::size_t current_max = random_size(max_requested_memory_bytes - delta_bytes, max_requested_memory_bytes + delta_bytes);
+      std::size_t headroom_bytes = current_max - bytes_used;
       std::size_t texture_bytes = random_size(max_texture_bytes/2, max_texture_bytes);
 
       while (texture_bytes <= headroom_bytes) {
