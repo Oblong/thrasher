@@ -39,9 +39,9 @@ namespace forensics {
     GLbyte r, g, b, a;
   };
 
-  class BufferFaker final {
+  class SharedBufferFaker final {
   public:
-    BufferFaker(RandomHelper &color_generator_, std::size_t max_texture_bytes)
+    SharedBufferFaker(RandomHelper &color_generator_, std::size_t max_texture_bytes)
       : color_generator{color_generator_}
       , texture_buffer(max_texture_bytes)
     {}
@@ -61,6 +61,31 @@ namespace forensics {
   private:
     RandomHelper &color_generator;
     std::vector<GLbyte> texture_buffer;
+  };
+
+  class UniqueBufferFaker final {
+  public:
+    UniqueBufferFaker(RandomHelper &color_generator_, std::size_t max_texture_bytes)
+      : color_generator{color_generator_}
+      , max_texture_bytes{max_texture_bytes}
+    {}
+
+    template <typename Callback>
+    void recolor(std::size_t size, Callback callback) {
+      if (size > max_texture_bytes) {
+        fprintf(stderr, "Tried to fake a texture of size %lu (max is %lu)\n", size, max_texture_bytes);
+        return;
+      }
+
+      std::vector<GLbyte> buffer(size);
+      std::generate(begin(buffer), end(buffer), Filler{color_generator});
+
+      callback(buffer.data());
+    }
+
+  private:
+    RandomHelper &color_generator;
+    std::size_t max_texture_bytes;
   };
 
   class TextureHandle final {
@@ -96,7 +121,7 @@ namespace forensics {
   class FakeTexture final {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
-    static FakeTexture create(GLsizei width, GLsizei height, BufferFaker &faker) {
+    static FakeTexture create(GLsizei width, GLsizei height, SharedBufferFaker &faker) {
       GLuint handle;
 
       GLsizei texture_size = 0;
@@ -146,7 +171,7 @@ namespace forensics {
 
   class RandomQuad final {
   public:
-    RandomQuad(GLsizei width, GLsizei height, BufferFaker &faker)
+    RandomQuad(GLsizei width, GLsizei height, SharedBufferFaker &faker)
       : texture{FakeTexture::create(width, height, faker)}
     {}
 

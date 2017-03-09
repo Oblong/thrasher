@@ -56,7 +56,7 @@ namespace forensics {
     std::size_t max_requested_memory_bytes;
     std::size_t max_texture_bytes;
     RandomHelper generator;
-    BufferFaker faker;
+    SharedBufferFaker faker;
     std::vector<RandomQuad> quads;
   };
 }
