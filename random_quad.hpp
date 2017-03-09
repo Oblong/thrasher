@@ -12,7 +12,11 @@
 namespace forensics {
   class Filler final {
   public:
-    Filler(RandomByte &generator) : r{generator()}, g{generator()}, b{generator()}, a{generator()} {}
+    Filler(RandomHelper &generator)
+      : r{generator.random_byte()}
+      , g{generator.random_byte()}
+      , b{generator.random_byte()}
+      , a{generator.random_byte()} {}
 
     GLbyte operator()() {
       auto mod = count % 4;
@@ -37,7 +41,13 @@ namespace forensics {
 
   template <std::size_t max_texture_bytes>
   class BufferFaker final {
+    using Buffer = std::array<GLbyte, max_texture_bytes>;
   public:
+    BufferFaker(RandomHelper &color_generator_)
+      : color_generator{color_generator_}
+      , texture_buffer{std::make_unique<Buffer>()}
+    {}
+
     template <typename Callback>
     void recolor(std::size_t size, Callback callback) {
       if (size > max_texture_bytes) {
@@ -51,8 +61,7 @@ namespace forensics {
     }
 
   private:
-    RandomByte color_generator{};
-    using Buffer = std::array<GLbyte, max_texture_bytes>;
+    RandomHelper &color_generator;
     std::unique_ptr<Buffer> texture_buffer = std::make_unique<Buffer>();
   };
 
@@ -143,14 +152,13 @@ namespace forensics {
   public:
     RandomQuad(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
       : texture{FakeTexture<max_texture_bytes>::create(width, height, faker)}
-      , float_generator{-1.0f, 1.0f}
     {}
 
     operator bool() const {
       return texture;
     }
 
-    void draw() {
+    void draw(RandomHelper &generator) const {
       if (!texture) return;
 
       glEnable(GL_TEXTURE_2D);
@@ -158,10 +166,10 @@ namespace forensics {
 
       glBegin(GL_QUADS);
 
-      float left = float_generator();
-      float right = float_generator();
-      float top = float_generator();
-      float bottom = float_generator();
+      float left = generator.random_float(-1.0f, 1.0f);
+      float right = generator.random_float(-1.0f, 1.0f);
+      float top = generator.random_float(-1.0f, 1.0f);
+      float bottom = generator.random_float(-1.0f, 1.0f);
 
       glTexCoord2f(0.0f, 0.0f);
       glVertex2f(left, bottom);
@@ -183,7 +191,6 @@ namespace forensics {
     }
 
   private:
-    RandomFloat float_generator;
     FakeTexture<max_texture_bytes> texture;
   };
 }
