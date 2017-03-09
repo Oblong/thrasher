@@ -47,7 +47,7 @@ namespace forensics {
         );
       }
 
-      for (auto &quad : quads) {
+      for (auto const &quad : quads) {
         quad.draw(generator);
       }
     }
