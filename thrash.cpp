@@ -25,8 +25,8 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         thrasher.draw();
         swap_buffers();
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(0.5s);
+        //using namespace std::chrono_literals;
+        //std::this_thread::sleep_for(0.5s);
       }
 
       return true;
