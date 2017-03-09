@@ -7,9 +7,16 @@
 #include <random>
 
 namespace forensics {
-  template <std::size_t max_texture_bytes, std::size_t max_requested_memory_bytes>
   class QuadThrasher final {
   public:
+    QuadThrasher(std::size_t max_requested_memory_bytes_, std::size_t max_texture_bytes_)
+      : max_requested_memory_bytes{max_requested_memory_bytes_}
+      , max_texture_bytes{max_texture_bytes_}
+      , generator{}
+      , faker{generator, max_texture_bytes}
+      , quads{}
+    {}
+
     void draw() {
       auto new_end = std::remove_if(
         begin(quads), end(quads), [&](auto&) { return generator.random_bool(); }
@@ -46,9 +53,11 @@ namespace forensics {
     }
 
   private:
-    RandomHelper generator{};
-    BufferFaker<max_texture_bytes> faker{generator};
-    std::vector<RandomQuad<max_texture_bytes>> quads{};
+    std::size_t max_requested_memory_bytes;
+    std::size_t max_texture_bytes;
+    RandomHelper generator;
+    BufferFaker faker;
+    std::vector<RandomQuad> quads;
   };
 }
 

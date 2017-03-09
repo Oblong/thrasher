@@ -39,30 +39,28 @@ namespace forensics {
     GLbyte r, g, b, a;
   };
 
-  template <std::size_t max_texture_bytes>
   class BufferFaker final {
-    using Buffer = std::array<GLbyte, max_texture_bytes>;
   public:
-    BufferFaker(RandomHelper &color_generator_)
+    BufferFaker(RandomHelper &color_generator_, std::size_t max_texture_bytes)
       : color_generator{color_generator_}
-      , texture_buffer{std::make_unique<Buffer>()}
+      , texture_buffer(max_texture_bytes)
     {}
 
     template <typename Callback>
     void recolor(std::size_t size, Callback callback) {
-      if (size > max_texture_bytes) {
-        fprintf(stderr, "Tried to fake a texture of size %lu (max is %lu)\n", size, max_texture_bytes);
+      if (size > texture_buffer.size()) {
+        fprintf(stderr, "Tried to fake a texture of size %lu (max is %lu)\n", size, texture_buffer.size());
         return;
       }
 
-      std::generate(texture_buffer->begin(), texture_buffer->begin() + size, Filler{color_generator});
+      std::generate(texture_buffer.begin(), texture_buffer.begin() + size, Filler{color_generator});
 
-      callback(texture_buffer->data());
+      callback(texture_buffer.data());
     }
 
   private:
     RandomHelper &color_generator;
-    std::unique_ptr<Buffer> texture_buffer = std::make_unique<Buffer>();
+    std::vector<GLbyte> texture_buffer;
   };
 
   class TextureHandle final {
@@ -95,11 +93,10 @@ namespace forensics {
     GLuint handle;
   };
 
-  template <std::size_t max_texture_bytes>
   class FakeTexture final {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
-    static FakeTexture create(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker) {
+    static FakeTexture create(GLsizei width, GLsizei height, BufferFaker &faker) {
       GLuint handle;
 
       GLsizei texture_size = 0;
@@ -147,11 +144,10 @@ namespace forensics {
     TextureHandle raii_handle;
   };
 
-  template <std::size_t max_texture_bytes>
   class RandomQuad final {
   public:
-    RandomQuad(GLsizei width, GLsizei height, BufferFaker<max_texture_bytes> &faker)
-      : texture{FakeTexture<max_texture_bytes>::create(width, height, faker)}
+    RandomQuad(GLsizei width, GLsizei height, BufferFaker &faker)
+      : texture{FakeTexture::create(width, height, faker)}
     {}
 
     operator bool() const {
@@ -191,7 +187,7 @@ namespace forensics {
     }
 
   private:
-    FakeTexture<max_texture_bytes> texture;
+    FakeTexture texture;
   };
 }
 

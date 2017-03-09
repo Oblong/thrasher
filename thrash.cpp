@@ -19,7 +19,7 @@ int main() {
     [](auto swap_buffers) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
-      forensics::QuadThrasher<max_texture_bytes, max_requested_memory_bytes> thrasher{};
+      forensics::QuadThrasher thrasher{max_requested_memory_bytes, max_texture_bytes};
 
       while (true) {
         glClear(GL_COLOR_BUFFER_BIT);
