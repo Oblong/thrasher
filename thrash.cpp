@@ -11,25 +11,55 @@
 
 namespace {
   template <typename Faker, typename BufferSwapper>
-  bool draw_loop(
+  class DrawLoop {
+  public:
+    DrawLoop(
+      BufferSwapper swap_buffers,
+      std::size_t max_texture_bytes,
+      std::size_t max_requested_memory_bytes,
+      std::size_t thrash_interval_
+    ) : frame_count{0}
+      , thrash_interval{thrash_interval_}
+      , swap_buffers{std::move(swap_buffers)}
+      , generator{}
+      , thrasher{generator, max_requested_memory_bytes, max_texture_bytes}
+    {}
+
+    bool operator()() {
+      while (true) {
+        glClear(GL_COLOR_BUFFER_BIT);
+        if (frame_count == thrash_interval) {
+          thrasher.thrash(generator);
+          frame_count = 0;
+        }
+        thrasher.draw(generator);
+        swap_buffers();
+        ++frame_count;
+      }
+
+      return true;
+    }
+  private:
+    std::size_t frame_count;
+    std::size_t thrash_interval;
+    BufferSwapper swap_buffers;
+    forensics::RandomHelper generator;
+    forensics::QuadThrasher<Faker> thrasher;
+  };
+
+  template <typename Faker, typename BufferSwapper>
+  DrawLoop<Faker, BufferSwapper> make_draw_loop(
     BufferSwapper swap_buffers,
     std::size_t max_texture_bytes,
-    std::size_t max_requested_memory_bytes
+    std::size_t max_requested_memory_bytes,
+    std::size_t thrash_interval
   ) {
-    forensics::RandomHelper generator{};
-    forensics::QuadThrasher<Faker> thrasher{
-      generator, max_requested_memory_bytes, max_texture_bytes
+    return {
+      std::move(swap_buffers),
+      max_texture_bytes,
+      max_requested_memory_bytes,
+      thrash_interval
     };
-    while (true) {
-      glClear(GL_COLOR_BUFFER_BIT);
-      thrasher.thrash(generator);
-      thrasher.draw(generator);
-      swap_buffers();
-      //using namespace std::chrono_literals;
-      //std::this_thread::sleep_for(0.5s);
-    }
-
-    return true;
   }
 }
 
@@ -58,6 +88,13 @@ int main(int argc, char **argv) {
     "Oscillate memory usage randomly within the band [cap - percent * cap, cap + percent * cap]",
     {'d', "delta"},
     0.25
+  };
+  args::ValueFlag<std::size_t> interval_flag {
+    arg_parser,
+    "INTERVAL",
+    "The number of frames between texture memory thrashes",
+    {'i', "interval"},
+    30
   };
   args::ValueFlag<std::size_t> width_flag{
     arg_parser, "WIDTH", "The width of a screen", {'w', "width"}, 500
@@ -115,17 +152,19 @@ int main(int argc, char **argv) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
       if (alloc_buffers_flag) {
-        return draw_loop<forensics::UniqueBufferFaker>(
+        return make_draw_loop<forensics::UniqueBufferFaker>(
           std::move(swap_buffers),
           args::get(max_texture_flag),
-          args::get(max_memory_flag) * delta_percent
-        );
+          args::get(max_memory_flag) * delta_percent,
+          args::get(interval_flag)
+        )();
       } else {
-        return draw_loop<forensics::SharedBufferFaker>(
+        return make_draw_loop<forensics::SharedBufferFaker>(
           std::move(swap_buffers),
           args::get(max_texture_flag),
-          args::get(max_memory_flag) * delta_percent
-        );
+          args::get(max_memory_flag) * delta_percent,
+          args::get(interval_flag)
+        )();
       }
     }
   );

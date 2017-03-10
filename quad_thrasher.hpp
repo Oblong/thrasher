@@ -59,6 +59,7 @@ namespace forensics {
     }
 
   private:
+    std::size_t frame_count;
     std::size_t max_requested_memory_bytes;
     std::size_t max_texture_bytes;
     Faker faker;
