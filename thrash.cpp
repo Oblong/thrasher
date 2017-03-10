@@ -89,9 +89,9 @@ int main(int argc, char **argv) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
       if (alloc_buffers_flag) {
-        return draw_loop<forensics::SharedBufferFaker>(std::move(swap_buffers));
-      } else {
         return draw_loop<forensics::UniqueBufferFaker>(std::move(swap_buffers));
+      } else {
+        return draw_loop<forensics::SharedBufferFaker>(std::move(swap_buffers));
       }
     }
   );
