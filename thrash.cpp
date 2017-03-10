@@ -5,6 +5,7 @@
 #include <args.hxx>
 
 #include <chrono>
+#include <cstdlib>
 #include <thread>
 
 #include <GL/gl.h>
@@ -124,21 +125,21 @@ int main(int argc, char **argv) {
     arg_parser.ParseCLI(argc, argv);
   } catch (args::Help) {
     printf("%s", arg_parser.Help().c_str());
-    return 0;
+    return EXIT_SUCCESS;
   } catch (args::ParseError e) {
     fprintf(stderr, "%s\n", e.what());
     printf("%s", arg_parser.Help().c_str());
-    return 1;
+    return EXIT_FAILURE;
   } catch (args::ValidationError e) {
     fprintf(stderr, "%s\n", e.what());
     printf("%s", arg_parser.Help().c_str());
-    return 1;
+    return EXIT_FAILURE;
   }
 
   auto delta_percent = args::get(delta_flag);
   if (delta_percent < 0. || delta_percent > 1.) {
     fprintf(stderr, "Delta percentage must be between 0 and 1\n");
-    return 1;
+    return EXIT_FAILURE;
   }
 
   std::size_t width = args::get(width_flag);
@@ -174,5 +175,5 @@ int main(int argc, char **argv) {
     }
   );
 
-  if (result) return 0; else return 1;
+  if (result) return EXIT_SUCCESS; else return EXIT_FAILURE;
 }
