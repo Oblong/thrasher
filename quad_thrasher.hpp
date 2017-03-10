@@ -15,8 +15,10 @@ namespace forensics {
     QuadThrasher(
       RandomHelper &generator,
       std::size_t max_requested_memory_bytes_,
+      std::size_t delta_bytes_,
       std::size_t max_texture_bytes_
     ) : max_requested_memory_bytes{max_requested_memory_bytes_}
+      , delta_bytes{delta_bytes_}
       , max_texture_bytes{max_texture_bytes_}
       , faker{generator, level_zero_bytes(max_texture_bytes)}
       , quads{}
@@ -30,7 +32,6 @@ namespace forensics {
       std::vector<std::size_t> sizes{};
       for (auto &quad : quads) { sizes.push_back(quad.size_bytes()); }
       std::size_t bytes_used = std::accumulate(begin(sizes), end(sizes), 0);
-      std::size_t delta_bytes = max_requested_memory_bytes / 4;
       std::size_t current_max = generator.random_size(
         max_requested_memory_bytes - delta_bytes,
         max_requested_memory_bytes + delta_bytes
@@ -61,6 +62,7 @@ namespace forensics {
   private:
     std::size_t frame_count;
     std::size_t max_requested_memory_bytes;
+    std::size_t delta_bytes;
     std::size_t max_texture_bytes;
     Faker faker;
     std::vector<RandomQuad> quads;

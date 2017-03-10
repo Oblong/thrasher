@@ -17,12 +17,13 @@ namespace {
       BufferSwapper swap_buffers,
       std::size_t max_texture_bytes,
       std::size_t max_requested_memory_bytes,
+      std::size_t delta_bytes,
       std::size_t thrash_interval_
     ) : frame_count{0}
       , thrash_interval{thrash_interval_}
       , swap_buffers{std::move(swap_buffers)}
       , generator{}
-      , thrasher{generator, max_requested_memory_bytes, max_texture_bytes}
+      , thrasher{generator, max_requested_memory_bytes, delta_bytes, max_texture_bytes}
     {}
 
     bool operator()() {
@@ -52,12 +53,14 @@ namespace {
     BufferSwapper swap_buffers,
     std::size_t max_texture_bytes,
     std::size_t max_requested_memory_bytes,
+    std::size_t delta_bytes,
     std::size_t thrash_interval
   ) {
     return {
       std::move(swap_buffers),
       max_texture_bytes,
       max_requested_memory_bytes,
+      delta_bytes,
       thrash_interval
     };
   }
@@ -155,6 +158,7 @@ int main(int argc, char **argv) {
         return make_draw_loop<forensics::UniqueBufferFaker>(
           std::move(swap_buffers),
           args::get(max_texture_flag),
+          args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
           args::get(interval_flag)
         )();
@@ -162,6 +166,7 @@ int main(int argc, char **argv) {
         return make_draw_loop<forensics::SharedBufferFaker>(
           std::move(swap_buffers),
           args::get(max_texture_flag),
+          args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
           args::get(interval_flag)
         )();
