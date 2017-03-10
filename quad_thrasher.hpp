@@ -8,6 +8,9 @@
 namespace forensics {
   template <typename Faker>
   class QuadThrasher final {
+    static std::size_t level_zero_bytes(std::size_t texture_bytes) {
+      return 3 * (texture_bytes / 4);
+    }
   public:
     QuadThrasher(
       RandomHelper &generator,
@@ -15,7 +18,7 @@ namespace forensics {
       std::size_t max_texture_bytes_
     ) : max_requested_memory_bytes{max_requested_memory_bytes_}
       , max_texture_bytes{max_texture_bytes_}
-      , faker{generator, max_texture_bytes}
+      , faker{generator, level_zero_bytes(max_texture_bytes)}
       , quads{}
     {}
 
@@ -38,10 +41,9 @@ namespace forensics {
       );
 
       while (texture_bytes <= headroom_bytes) {
-        std::size_t texels = texture_bytes / 4;
-        std::size_t level_zero_size = 3 * (texels / 4);
-        std::size_t width = generator.random_size(10, level_zero_size / 10);
-        std::size_t height = level_zero_size / width;
+        auto level_zero_texels = level_zero_bytes(texture_bytes) / 4;
+        std::size_t width = generator.random_size(10, level_zero_texels / 10);
+        std::size_t height = level_zero_texels / width;
         quads.emplace_back(width, height, faker);
         headroom_bytes -= quads.back().size_bytes();
         texture_bytes = generator.random_size(
