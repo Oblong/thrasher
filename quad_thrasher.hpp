@@ -1,7 +1,6 @@
 #ifndef UUID_A7972692_0ADA_41D3_B90D_F31B297F28CB
 #define UUID_A7972692_0ADA_41D3_B90D_F31B297F28CB
 
-#include <random_helper.hpp>
 #include <random_quad.hpp>
 
 #include <random>
@@ -9,15 +8,17 @@
 namespace forensics {
   class QuadThrasher final {
   public:
-    QuadThrasher(std::size_t max_requested_memory_bytes_, std::size_t max_texture_bytes_)
-      : max_requested_memory_bytes{max_requested_memory_bytes_}
+    QuadThrasher(
+      RandomHelper &generator,
+      std::size_t max_requested_memory_bytes_,
+      std::size_t max_texture_bytes_
+    ) : max_requested_memory_bytes{max_requested_memory_bytes_}
       , max_texture_bytes{max_texture_bytes_}
-      , generator{}
       , faker{generator, max_texture_bytes}
       , quads{}
     {}
 
-    void draw() {
+    void thrash(RandomHelper &generator) {
       auto new_end = std::remove_if(
         begin(quads), end(quads), [&](auto&) { return generator.random_bool(); }
       );
@@ -46,7 +47,9 @@ namespace forensics {
           max_texture_bytes/2, max_texture_bytes
         );
       }
+    }
 
+    void draw(RandomHelper &generator) const {
       for (auto const &quad : quads) {
         quad.draw(generator);
       }
@@ -55,7 +58,6 @@ namespace forensics {
   private:
     std::size_t max_requested_memory_bytes;
     std::size_t max_texture_bytes;
-    RandomHelper generator;
     SharedBufferFaker faker;
     std::vector<RandomQuad> quads;
   };

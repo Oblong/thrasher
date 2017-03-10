@@ -1,4 +1,5 @@
 #include <quad_thrasher.hpp>
+#include <random_helper.hpp>
 #include <window.hpp>
 
 #include <chrono>
@@ -19,11 +20,13 @@ int main() {
     [](auto swap_buffers) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
-      forensics::QuadThrasher thrasher{max_requested_memory_bytes, max_texture_bytes};
+      forensics::RandomHelper generator{};
+      forensics::QuadThrasher thrasher{generator, max_requested_memory_bytes, max_texture_bytes};
 
       while (true) {
         glClear(GL_COLOR_BUFFER_BIT);
-        thrasher.draw();
+        thrasher.thrash(generator);
+        thrasher.draw(generator);
         swap_buffers();
         //using namespace std::chrono_literals;
         //std::this_thread::sleep_for(0.5s);
