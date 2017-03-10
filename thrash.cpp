@@ -10,13 +10,12 @@
 #include <GL/gl.h>
 
 namespace {
-  //constexpr std::size_t max_texture_bytes = 101782080;
-  //constexpr std::size_t max_requested_memory_bytes = 2000000000;
-  constexpr std::size_t max_texture_bytes = 10000;
-  constexpr std::size_t max_requested_memory_bytes = 200000;
-
   template <typename Faker, typename BufferSwapper>
-  bool draw_loop(BufferSwapper swap_buffers) {
+  bool draw_loop(
+    BufferSwapper swap_buffers,
+    std::size_t max_texture_bytes,
+    std::size_t max_requested_memory_bytes
+  ) {
     forensics::RandomHelper generator{};
     forensics::QuadThrasher<Faker> thrasher{
       generator, max_requested_memory_bytes, max_texture_bytes
@@ -38,6 +37,27 @@ int main(int argc, char **argv) {
   args::ArgumentParser arg_parser{"A texture memory thrasher"};
   args::HelpFlag help_flag{
     arg_parser, "help", "Display this message", {"help"}
+  };
+  args::ValueFlag<std::size_t> max_texture_flag{
+    arg_parser,
+    "BYTES",
+    "The maximum texture size in bytes",
+    {'t', "texture-size"},
+    10000
+  };
+  args::ValueFlag<std::size_t> max_memory_flag{
+    arg_parser,
+    "BYTES",
+    "The base texture memory usage cap. The actual cap is this value plus the value computed from the --delta flag",
+    {'c', "cap"},
+    200000
+  };
+  args::ValueFlag<double> delta_flag{
+    arg_parser,
+    "PERCENT",
+    "Oscillate memory usage randomly within the band [cap - percent * cap, cap + percent * cap]",
+    {'d', "delta"},
+    0.25
   };
   args::ValueFlag<std::size_t> width_flag{
     arg_parser, "WIDTH", "The width of a screen", {'w', "width"}, 500
@@ -75,6 +95,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  auto delta_percent = args::get(delta_flag);
+  if (delta_percent < 0. || delta_percent > 1.) {
+    fprintf(stderr, "Delta percentage must be between 0 and 1\n");
+    return 1;
+  }
+
   std::size_t width = args::get(width_flag);
   std::size_t height = args::get(height_flag);
   if (vertical_flag) {
@@ -89,9 +115,17 @@ int main(int argc, char **argv) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
       if (alloc_buffers_flag) {
-        return draw_loop<forensics::UniqueBufferFaker>(std::move(swap_buffers));
+        return draw_loop<forensics::UniqueBufferFaker>(
+          std::move(swap_buffers),
+          args::get(max_texture_flag),
+          args::get(max_memory_flag) * delta_percent
+        );
       } else {
-        return draw_loop<forensics::SharedBufferFaker>(std::move(swap_buffers));
+        return draw_loop<forensics::SharedBufferFaker>(
+          std::move(swap_buffers),
+          args::get(max_texture_flag),
+          args::get(max_memory_flag) * delta_percent
+        );
       }
     }
   );
