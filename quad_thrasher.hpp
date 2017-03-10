@@ -6,6 +6,7 @@
 #include <random>
 
 namespace forensics {
+  template <typename Faker>
   class QuadThrasher final {
   public:
     QuadThrasher(
@@ -58,7 +59,7 @@ namespace forensics {
   private:
     std::size_t max_requested_memory_bytes;
     std::size_t max_texture_bytes;
-    SharedBufferFaker faker;
+    Faker faker;
     std::vector<RandomQuad> quads;
   };
 }

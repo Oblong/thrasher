@@ -121,7 +121,8 @@ namespace forensics {
   class FakeTexture final {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
-    static FakeTexture create(GLsizei width, GLsizei height, SharedBufferFaker &faker) {
+    template <typename Faker>
+    static FakeTexture create(GLsizei width, GLsizei height, Faker &faker) {
       GLuint handle;
 
       GLsizei texture_size = 0;
@@ -171,7 +172,8 @@ namespace forensics {
 
   class RandomQuad final {
   public:
-    RandomQuad(GLsizei width, GLsizei height, SharedBufferFaker &faker)
+    template <typename Faker>
+    RandomQuad(GLsizei width, GLsizei height, Faker &faker)
       : texture{FakeTexture::create(width, height, faker)}
     {}
 
