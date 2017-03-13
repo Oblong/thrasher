@@ -48,8 +48,10 @@ Memory Thrasher
       -s[COUNT], --screens=[COUNT]      The number of screens
       -v, --vertical                    Screens are vertically aligned (defaults
                                         to horizontal)
-      -a, --alloc_buffers               Allocate a new source buffer for each
+      --alloc-buffers                   Allocate a new source buffer for each
                                         mip upload
+      --no-draw                         Do not draw any quads. (Textures are
+                                        still created/deleted.)
 ```
 
 **WARNING**: The develop branch is partially used for synchronization, and as
