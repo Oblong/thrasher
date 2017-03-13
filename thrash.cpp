@@ -19,12 +19,14 @@ namespace {
       std::size_t max_texture_bytes,
       std::size_t max_requested_memory_bytes,
       std::size_t delta_bytes,
-      std::size_t thrash_interval_
+      std::size_t thrash_interval_,
+      bool draw_
     ) : frame_count{0}
       , thrash_interval{thrash_interval_}
       , swap_buffers{std::move(swap_buffers)}
       , generator{}
       , thrasher{generator, max_requested_memory_bytes, delta_bytes, max_texture_bytes}
+      , draw{draw_}
     {}
 
     bool operator()() {
@@ -34,7 +36,9 @@ namespace {
           thrasher.thrash(generator);
           frame_count = 0;
         }
-        thrasher.draw(generator);
+        if (draw) {
+          thrasher.draw(generator);
+        }
         swap_buffers();
         ++frame_count;
       }
@@ -47,6 +51,7 @@ namespace {
     BufferSwapper swap_buffers;
     forensics::RandomHelper generator;
     forensics::QuadThrasher<Faker> thrasher;
+    bool draw;
   };
 
   template <typename Faker, typename BufferSwapper>
@@ -55,14 +60,16 @@ namespace {
     std::size_t max_texture_bytes,
     std::size_t max_requested_memory_bytes,
     std::size_t delta_bytes,
-    std::size_t thrash_interval
+    std::size_t thrash_interval,
+    bool draw
   ) {
     return {
       std::move(swap_buffers),
       max_texture_bytes,
       max_requested_memory_bytes,
       delta_bytes,
-      thrash_interval
+      thrash_interval,
+      draw
     };
   }
 }
@@ -119,7 +126,13 @@ int main(int argc, char **argv) {
     arg_parser,
     "alloc_buffers",
     "Allocate a new source buffer for each mip upload",
-    {'a', "alloc_buffers"}
+    {"alloc-buffers"}
+  };
+  args::Flag no_draw_flag{
+    arg_parser,
+    "no_draw",
+    "Do not draw any quads. (Textures are still created/deleted.)",
+    {"no-draw"}
   };
   try {
     arg_parser.ParseCLI(argc, argv);
@@ -161,7 +174,8 @@ int main(int argc, char **argv) {
           args::get(max_texture_flag),
           args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
-          args::get(interval_flag)
+          args::get(interval_flag),
+          !args::get(no_draw_flag)
         )();
       } else {
         return make_draw_loop<forensics::SharedBufferFaker>(
@@ -169,7 +183,8 @@ int main(int argc, char **argv) {
           args::get(max_texture_flag),
           args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
-          args::get(interval_flag)
+          args::get(interval_flag),
+          !args::get(no_draw_flag)
         )();
       }
     }
