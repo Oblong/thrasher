@@ -32,7 +32,7 @@ namespace {
     bool operator()() {
       while (true) {
         glClear(GL_COLOR_BUFFER_BIT);
-        if (frame_count == thrash_interval) {
+        if (frame_count % thrash_interval == 0) {
           thrasher.thrash(generator);
           frame_count = 0;
         }
