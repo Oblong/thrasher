@@ -11,7 +11,7 @@ namespace forensics {
     class GLFWWrapper {
     public:
       GLFWWrapper() : loaded{glfwInit() != 0} {
-        if (!loaded) fprintf(stderr, "Failed to load GLFW");
+        if (!loaded) fprintf(stderr, "Failed to load GLFW\n");
       }
       ~GLFWWrapper() { if (loaded) glfwTerminate(); }
       GLFWWrapper(GLFWWrapper const&) = delete;
