@@ -16,7 +16,7 @@ namespace {
   public:
     DrawLoop(
       BufferSwapper swap_buffers,
-      std::size_t max_texture_bytes,
+      std::size_t max_texture_dimension_texels,
       std::size_t max_requested_memory_bytes,
       std::size_t delta_bytes,
       std::size_t thrash_interval_,
@@ -25,7 +25,7 @@ namespace {
       , thrash_interval{thrash_interval_}
       , swap_buffers{std::move(swap_buffers)}
       , generator{}
-      , thrasher{generator, max_requested_memory_bytes, delta_bytes, max_texture_bytes}
+      , thrasher{generator, max_requested_memory_bytes, delta_bytes, max_texture_dimension_texels}
       , draw{draw_}
     {}
 
@@ -57,7 +57,7 @@ namespace {
   template <typename Faker, typename BufferSwapper>
   DrawLoop<Faker, BufferSwapper> make_draw_loop(
     BufferSwapper swap_buffers,
-    std::size_t max_texture_bytes,
+    std::size_t max_texture_dimension_texels,
     std::size_t max_requested_memory_bytes,
     std::size_t delta_bytes,
     std::size_t thrash_interval,
@@ -65,7 +65,7 @@ namespace {
   ) {
     return {
       std::move(swap_buffers),
-      max_texture_bytes,
+      max_texture_dimension_texels,
       max_requested_memory_bytes,
       delta_bytes,
       thrash_interval,
@@ -81,10 +81,10 @@ int main(int argc, char **argv) {
   };
   args::ValueFlag<std::size_t> max_texture_flag{
     arg_parser,
-    "BYTES",
-    "The maximum texture size in bytes",
+    "TEXELS",
+    "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS)",
     {'t', "texture-size"},
-    10000
+    1000
   };
   args::ValueFlag<std::size_t> max_memory_flag{
     arg_parser,

@@ -3,24 +3,26 @@
 
 #include <random_quad.hpp>
 
+#include <cmath>
 #include <random>
 
 namespace forensics {
   template <typename Faker>
   class QuadThrasher final {
-    static std::size_t level_zero_bytes(std::size_t texture_bytes) {
-      return 3 * (texture_bytes / 4);
-    }
+    static constexpr std::size_t bytes_per_texel = 4;
   public:
     QuadThrasher(
       RandomHelper &generator,
       std::size_t max_requested_memory_bytes_,
       std::size_t delta_bytes_,
-      std::size_t max_texture_bytes_
+      std::size_t max_texture_dimension_texels_
     ) : max_requested_memory_bytes{max_requested_memory_bytes_}
       , delta_bytes{delta_bytes_}
-      , max_texture_bytes{max_texture_bytes_}
-      , faker{generator, level_zero_bytes(max_texture_bytes)}
+      , max_texture_dimension_texels{max_texture_dimension_texels_}
+      , faker{
+          generator,
+          max_texture_dimension_texels * max_texture_dimension_texels * bytes_per_texel
+        }
       , quads{}
     {}
 
@@ -37,19 +39,15 @@ namespace forensics {
         max_requested_memory_bytes + delta_bytes
       );
       std::size_t headroom_bytes = current_max - bytes_used;
-      std::size_t texture_bytes = generator.random_size(
-        max_texture_bytes/2, max_texture_bytes
-      );
 
-      while (texture_bytes <= headroom_bytes) {
-        auto level_zero_texels = level_zero_bytes(texture_bytes) / 4;
-        std::size_t width = generator.random_size(10, level_zero_texels / 10);
-        std::size_t height = level_zero_texels / width;
+      while (true) {
+        std::size_t width = generator.random_size(1, max_texture_dimension_texels);
+        std::size_t height = generator.random_size(1, max_texture_dimension_texels);
+        // 4/3 for size with mips, add 0.5 to round up
+        std::size_t pending_texture_size_bound = (width * height * bytes_per_texel * 4. / 3.) + 0.5;
+        if (pending_texture_size_bound > headroom_bytes) break;
         quads.emplace_back(width, height, faker);
         headroom_bytes -= quads.back().size_bytes();
-        texture_bytes = generator.random_size(
-          max_texture_bytes/2, max_texture_bytes
-        );
       }
     }
 
@@ -63,7 +61,7 @@ namespace forensics {
     std::size_t frame_count;
     std::size_t max_requested_memory_bytes;
     std::size_t delta_bytes;
-    std::size_t max_texture_bytes;
+    std::size_t max_texture_dimension_texels;
     Faker faker;
     std::vector<RandomQuad> quads;
   };
