@@ -82,7 +82,8 @@ int main(int argc, char **argv) {
   args::ValueFlag<std::size_t> max_texture_flag{
     arg_parser,
     "TEXELS",
-    "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS)",
+    "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS). "
+    "Note that if this value is more than the driver supports, the driver's maximum value will be used.",
     {'t', "texture-size"},
     1000
   };
@@ -168,10 +169,22 @@ int main(int argc, char **argv) {
     [&](auto swap_buffers) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
+      GLint driver_max_texture_dimension;
+      glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension);
+      std::size_t max_texture_dimension = args::get(max_texture_flag);
+      if (max_texture_dimension > driver_max_texture_dimension) {
+        max_texture_dimension = driver_max_texture_dimension;
+        fprintf(
+          stderr,
+          "Warning: requested texture dimension was too big, using %lu\n",
+          max_texture_dimension
+        );
+      }
+
       if (alloc_buffers_flag) {
         return make_draw_loop<forensics::UniqueBufferFaker>(
           std::move(swap_buffers),
-          args::get(max_texture_flag),
+          max_texture_dimension,
           args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
           args::get(interval_flag),
@@ -180,7 +193,7 @@ int main(int argc, char **argv) {
       } else {
         return make_draw_loop<forensics::SharedBufferFaker>(
           std::move(swap_buffers),
-          args::get(max_texture_flag),
+          max_texture_dimension,
           args::get(max_memory_flag),
           args::get(max_memory_flag) * delta_percent,
           args::get(interval_flag),
