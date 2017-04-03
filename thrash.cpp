@@ -25,7 +25,12 @@ namespace {
       , thrash_interval{thrash_interval_}
       , swap_buffers{std::move(swap_buffers)}
       , generator{}
-      , thrasher{generator, max_requested_memory_bytes, delta_bytes, max_texture_dimension_texels}
+      , thrasher{
+          generator,
+          max_requested_memory_bytes,
+          delta_bytes,
+          max_texture_dimension_texels
+        }
       , draw{draw_}
     {}
 
@@ -83,21 +88,24 @@ int main(int argc, char **argv) {
     arg_parser,
     "TEXELS",
     "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS). "
-    "Note that if this value is more than the driver supports, the driver's maximum value will be used.",
+    "Note that if this value is more than the driver supports, the driver's "
+    "maximum value will be used.",
     {'t', "texture-size"},
     1000
   };
   args::ValueFlag<std::size_t> max_memory_flag{
     arg_parser,
     "BYTES",
-    "The base texture memory usage cap. The actual cap is this value plus the value computed from the --delta flag",
+    "The base texture memory usage cap. The actual cap is this value plus the "
+    "value computed from the --delta flag",
     {'c', "cap"},
     200000
   };
   args::ValueFlag<double> delta_flag{
     arg_parser,
     "PERCENT",
-    "Oscillate memory usage randomly within the band [cap - percent * cap, cap + percent * cap]",
+    "Oscillate memory usage randomly within the band [cap - percent * cap, cap + "
+    "percent * cap]",
     {'d', "delta"},
     0.25
   };
