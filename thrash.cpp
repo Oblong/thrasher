@@ -17,7 +17,7 @@ namespace {
     DrawLoop(
       BufferSwapper swap_buffers,
       std::size_t max_texture_dimension_texels,
-      std::size_t max_requested_memory_bytes,
+      std::size_t average_memory_usage_bytes,
       std::size_t delta_bytes,
       std::size_t thrash_interval_,
       bool draw_
@@ -27,7 +27,7 @@ namespace {
       , generator{}
       , thrasher{
           generator,
-          max_requested_memory_bytes,
+          average_memory_usage_bytes,
           delta_bytes,
           max_texture_dimension_texels
         }
@@ -63,7 +63,7 @@ namespace {
   DrawLoop<Faker, BufferSwapper> make_draw_loop(
     BufferSwapper swap_buffers,
     std::size_t max_texture_dimension_texels,
-    std::size_t max_requested_memory_bytes,
+    std::size_t average_memory_usage_bytes,
     std::size_t delta_bytes,
     std::size_t thrash_interval,
     bool draw
@@ -71,7 +71,7 @@ namespace {
     return {
       std::move(swap_buffers),
       max_texture_dimension_texels,
-      max_requested_memory_bytes,
+      average_memory_usage_bytes,
       delta_bytes,
       thrash_interval,
       draw
