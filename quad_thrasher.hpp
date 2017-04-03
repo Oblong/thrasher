@@ -57,13 +57,13 @@ namespace forensics {
       quads.erase(new_end, end(quads));
     }
 
-    std::size_t get_bytes_used() {
+    std::size_t get_bytes_used() const {
       std::vector<std::size_t> sizes{};
       for (auto &quad : quads) { sizes.push_back(quad.size_bytes()); }
       return std::accumulate(begin(sizes), end(sizes), 0);
     }
 
-    std::size_t get_headroom_bytes(RandomHelper &generator) {
+    std::size_t get_headroom_bytes(RandomHelper &generator) const {
       std::size_t max_bytes_this_thrash = generator.random_size(
         average_memory_usage_bytes - delta_bytes,
         average_memory_usage_bytes + delta_bytes
