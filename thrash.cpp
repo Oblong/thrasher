@@ -98,14 +98,14 @@ int main(int argc, char **argv) {
     "BYTES",
     "The base texture memory usage cap. The actual cap is this value plus the "
     "value computed from the --delta flag",
-    {'c', "cap"},
+    {'m', "memory-cap"},
     200000
   };
   args::ValueFlag<double> delta_flag{
     arg_parser,
     "PERCENT",
-    "Oscillate memory usage randomly within the band [cap - percent * cap, cap + "
-    "percent * cap]",
+    "Oscillate memory usage randomly within the band [memory-cap - delta * "
+    "memory-cap, memory-cap + delta * memory-cap]",
     {'d', "delta"},
     0.25
   };
@@ -122,14 +122,11 @@ int main(int argc, char **argv) {
   args::ValueFlag<std::size_t> height_flag{
     arg_parser, "HEIGHT", "The height of a screen", {'h', "height"}, 500
   };
-  args::ValueFlag<std::size_t> num_screens_flag{
-    arg_parser, "COUNT", "The number of screens", {'s', "screens"}, 1
+  args::ValueFlag<std::size_t> screen_columns_flag{
+    arg_parser, "COUNT", "The number of screen columns", {'c', "columns"}, 1
   };
-  args::Flag vertical_flag{
-    arg_parser,
-    "vertical",
-    "Screens are vertically aligned (defaults to horizontal)",
-    {'v', "vertical"}
+  args::ValueFlag<std::size_t> screen_rows_flag{
+    arg_parser, "COUNT", "The number of screen rows", {'r', "rows"}, 1
   };
   args::Flag alloc_buffers_flag{
     arg_parser,
@@ -164,13 +161,8 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  std::size_t width = args::get(width_flag);
-  std::size_t height = args::get(height_flag);
-  if (vertical_flag) {
-    height *= args::get(num_screens_flag);
-  } else {
-    width *= args::get(num_screens_flag);
-  }
+  std::size_t width = args::get(width_flag) * args::get(screen_columns_flag);
+  std::size_t height = args::get(height_flag) * args::get(screen_rows_flag);
 
   bool result = forensics::openWindow(
     width, height, "THEFREEZE",

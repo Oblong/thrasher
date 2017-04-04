@@ -39,20 +39,20 @@ Usage
                                         that if this value is more than the
                                         driver supports, the driver's maximum
                                         value will be used.
-      -c[BYTES], --cap=[BYTES]          The base texture memory usage cap. The
+      -m[BYTES], --memory-cap=[BYTES]   The base texture memory usage cap. The
                                         actual cap is this value plus the value
                                         computed from the --delta flag
       -d[PERCENT], --delta=[PERCENT]    Oscillate memory usage randomly within
-                                        the band [cap - percent * cap, cap +
-                                        percent * cap]
+                                        the band [memory-cap - delta *
+                                        memory-cap, memory-cap + delta *
+                                        memory-cap]
       -i[INTERVAL],
       --interval=[INTERVAL]             The number of frames between texture
                                         memory thrashes
       -w[WIDTH], --width=[WIDTH]        The width of a screen
       -h[HEIGHT], --height=[HEIGHT]     The height of a screen
-      -s[COUNT], --screens=[COUNT]      The number of screens
-      -v, --vertical                    Screens are vertically aligned (defaults
-                                        to horizontal)
+      -c[COUNT], --columns=[COUNT]      The number of screen columns
+      -r[COUNT], --rows=[COUNT]         The number of screen rows
       --alloc-buffers                   Allocate a new source buffer for each
                                         mip upload
       --no-draw                         Do not draw any quads. (Textures are
