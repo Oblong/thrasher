@@ -59,5 +59,7 @@ Usage
                                         still created/deleted.)
 ```
 
+Example invocation: `./thrash -w 1920 -h 1080 -c 3 -t 1000 -m 1000000000`
+
 **WARNING**: The develop branch is partially used for synchronization, and as
 such it is subject to the occasional force push.
