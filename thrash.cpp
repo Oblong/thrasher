@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     "Note that if this value is more than the driver supports, the driver's "
     "maximum value will be used.",
     {'t', "texture-size"},
-    1000
+    100
   };
   args::ValueFlag<std::size_t> max_memory_flag{
     arg_parser,
