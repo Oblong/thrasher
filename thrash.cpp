@@ -35,6 +35,8 @@ namespace {
     {}
 
     bool operator()() {
+      glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+
       while (true) {
         glClear(GL_COLOR_BUFFER_BIT);
         if (frame_count % thrash_interval == 0) {
@@ -77,129 +79,165 @@ namespace {
       draw
     };
   }
+
+  struct ParsedArgs {
+    std::size_t width;
+    std::size_t height;
+    std::size_t max_texture_dimension;
+    std::size_t memory_cap;
+    std::size_t delta;
+    std::size_t interval;
+    bool should_alloc_buffers;
+    bool should_draw;
+
+    void print() const {
+      printf("width: %lu\n", width);
+      printf("height: %lu\n", height);
+      printf("max texture size: %lux%lu\n", max_texture_dimension, max_texture_dimension);
+      printf("memory cap: %lu bytes\n", memory_cap);
+      printf("delta: %lu bytes\n", delta);
+      printf("interval: %lu frames\n", interval);
+      printf("should alloc buffers: %s\n", should_alloc_buffers ? "true" : "false");
+      printf("should draw: %s\n", should_draw ? "true" : "false");
+    }
+  };
+
+  template <typename Callback>
+  bool parse_args(int argc, char **argv, Callback callback) {
+    args::ArgumentParser arg_parser{"A texture memory thrasher"};
+    args::HelpFlag help_flag{
+      arg_parser, "help", "Display this message", {"help"}
+    };
+    args::ValueFlag<std::size_t> max_texture_flag{
+      arg_parser,
+      "TEXELS",
+      "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS). "
+      "Note that if this value is more than the driver supports, the driver's "
+      "maximum value will be used.",
+      {'t', "texture-size"},
+      100
+    };
+    args::ValueFlag<std::size_t> max_memory_flag{
+      arg_parser,
+      "BYTES",
+      "The base texture memory usage cap. The actual cap is this value plus the "
+      "value computed from the --delta flag",
+      {'m', "memory-cap"},
+      200000
+    };
+    args::ValueFlag<double> delta_flag{
+      arg_parser,
+      "PERCENT",
+      "Oscillate memory usage randomly within the band [memory-cap - delta * "
+      "memory-cap, memory-cap + delta * memory-cap]",
+      {'d', "delta"},
+      0.25
+    };
+    args::ValueFlag<std::size_t> interval_flag {
+      arg_parser,
+      "INTERVAL",
+      "The number of frames between texture memory thrashes",
+      {'i', "interval"},
+      30
+    };
+    args::ValueFlag<std::size_t> width_flag{
+      arg_parser, "WIDTH", "The width of a screen", {'w', "width"}, 500
+    };
+    args::ValueFlag<std::size_t> height_flag{
+      arg_parser, "HEIGHT", "The height of a screen", {'h', "height"}, 500
+    };
+    args::ValueFlag<std::size_t> screen_columns_flag{
+      arg_parser, "COUNT", "The number of screen columns", {'c', "columns"}, 1
+    };
+    args::ValueFlag<std::size_t> screen_rows_flag{
+      arg_parser, "COUNT", "The number of screen rows", {'r', "rows"}, 1
+    };
+    args::Flag alloc_buffers_flag{
+      arg_parser,
+      "alloc_buffers",
+      "Allocate a new source buffer for each mip upload",
+      {"alloc-buffers"}
+    };
+    args::Flag no_draw_flag{
+      arg_parser,
+      "no_draw",
+      "Do not draw any quads. (Textures are still created/deleted.)",
+      {"no-draw"}
+    };
+
+    try {
+      arg_parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+      printf("%s", arg_parser.Help().c_str());
+      return true;
+    } catch (args::ParseError e) {
+      fprintf(stderr, "%s\n", e.what());
+      printf("%s", arg_parser.Help().c_str());
+      return false;
+    } catch (args::ValidationError e) {
+      fprintf(stderr, "%s\n", e.what());
+      printf("%s", arg_parser.Help().c_str());
+      return false;
+    }
+
+    auto delta_percent = args::get(delta_flag);
+    if (delta_percent < 0. || delta_percent > 1.) {
+      fprintf(stderr, "Delta percentage must be between 0 and 1\n");
+      return false;
+    }
+
+    ParsedArgs parsed;
+    parsed.width = args::get(width_flag) * args::get(screen_columns_flag);
+    parsed.height = args::get(height_flag) * args::get(screen_rows_flag);
+    parsed.max_texture_dimension = args::get(max_texture_flag);
+    parsed.memory_cap = args::get(max_memory_flag);
+    parsed.delta = args::get(max_memory_flag) * delta_percent;
+    parsed.interval = args::get(interval_flag);
+    parsed.should_alloc_buffers = alloc_buffers_flag;
+    parsed.should_draw = !args::get(no_draw_flag);
+
+    return callback(parsed);
+  }
 }
 
 int main(int argc, char **argv) {
-  args::ArgumentParser arg_parser{"A texture memory thrasher"};
-  args::HelpFlag help_flag{
-    arg_parser, "help", "Display this message", {"help"}
-  };
-  args::ValueFlag<std::size_t> max_texture_flag{
-    arg_parser,
-    "TEXELS",
-    "The maximum texture dimension in texels (largest texture is TEXELSxTEXELS). "
-    "Note that if this value is more than the driver supports, the driver's "
-    "maximum value will be used.",
-    {'t', "texture-size"},
-    100
-  };
-  args::ValueFlag<std::size_t> max_memory_flag{
-    arg_parser,
-    "BYTES",
-    "The base texture memory usage cap. The actual cap is this value plus the "
-    "value computed from the --delta flag",
-    {'m', "memory-cap"},
-    200000
-  };
-  args::ValueFlag<double> delta_flag{
-    arg_parser,
-    "PERCENT",
-    "Oscillate memory usage randomly within the band [memory-cap - delta * "
-    "memory-cap, memory-cap + delta * memory-cap]",
-    {'d', "delta"},
-    0.25
-  };
-  args::ValueFlag<std::size_t> interval_flag {
-    arg_parser,
-    "INTERVAL",
-    "The number of frames between texture memory thrashes",
-    {'i', "interval"},
-    30
-  };
-  args::ValueFlag<std::size_t> width_flag{
-    arg_parser, "WIDTH", "The width of a screen", {'w', "width"}, 500
-  };
-  args::ValueFlag<std::size_t> height_flag{
-    arg_parser, "HEIGHT", "The height of a screen", {'h', "height"}, 500
-  };
-  args::ValueFlag<std::size_t> screen_columns_flag{
-    arg_parser, "COUNT", "The number of screen columns", {'c', "columns"}, 1
-  };
-  args::ValueFlag<std::size_t> screen_rows_flag{
-    arg_parser, "COUNT", "The number of screen rows", {'r', "rows"}, 1
-  };
-  args::Flag alloc_buffers_flag{
-    arg_parser,
-    "alloc_buffers",
-    "Allocate a new source buffer for each mip upload",
-    {"alloc-buffers"}
-  };
-  args::Flag no_draw_flag{
-    arg_parser,
-    "no_draw",
-    "Do not draw any quads. (Textures are still created/deleted.)",
-    {"no-draw"}
-  };
-  try {
-    arg_parser.ParseCLI(argc, argv);
-  } catch (args::Help) {
-    printf("%s", arg_parser.Help().c_str());
-    return EXIT_SUCCESS;
-  } catch (args::ParseError e) {
-    fprintf(stderr, "%s\n", e.what());
-    printf("%s", arg_parser.Help().c_str());
-    return EXIT_FAILURE;
-  } catch (args::ValidationError e) {
-    fprintf(stderr, "%s\n", e.what());
-    printf("%s", arg_parser.Help().c_str());
-    return EXIT_FAILURE;
-  }
+  bool result = parse_args(argc, argv,
+    [](auto &parsed) {
+      return thrasher::openWindow(
+        parsed.width, parsed.height, "THEFREEZE",
+        [&parsed](auto swap_buffers) {
+          GLint driver_max_texture_dimension;
+          glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension);
+          if (parsed.max_texture_dimension > driver_max_texture_dimension) {
+            parsed.max_texture_dimension = driver_max_texture_dimension;
+            fprintf(
+              stderr,
+              "Warning: requested texture dimension was too big for driver\n"
+            );
+          }
+          parsed.print();
 
-  auto delta_percent = args::get(delta_flag);
-  if (delta_percent < 0. || delta_percent > 1.) {
-    fprintf(stderr, "Delta percentage must be between 0 and 1\n");
-    return EXIT_FAILURE;
-  }
-
-  std::size_t width = args::get(width_flag) * args::get(screen_columns_flag);
-  std::size_t height = args::get(height_flag) * args::get(screen_rows_flag);
-
-  bool result = thrasher::openWindow(
-    width, height, "THEFREEZE",
-    [&](auto swap_buffers) {
-      glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-
-      GLint driver_max_texture_dimension;
-      glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension);
-      std::size_t max_texture_dimension = args::get(max_texture_flag);
-      if (max_texture_dimension > driver_max_texture_dimension) {
-        max_texture_dimension = driver_max_texture_dimension;
-        fprintf(
-          stderr,
-          "Warning: requested texture dimension was too big, using %lu\n",
-          max_texture_dimension
-        );
-      }
-
-      if (alloc_buffers_flag) {
-        return make_draw_loop<thrasher::UniqueBufferFaker>(
-          std::move(swap_buffers),
-          max_texture_dimension,
-          args::get(max_memory_flag),
-          args::get(max_memory_flag) * delta_percent,
-          args::get(interval_flag),
-          !args::get(no_draw_flag)
-        )();
-      } else {
-        return make_draw_loop<thrasher::SharedBufferFaker>(
-          std::move(swap_buffers),
-          max_texture_dimension,
-          args::get(max_memory_flag),
-          args::get(max_memory_flag) * delta_percent,
-          args::get(interval_flag),
-          !args::get(no_draw_flag)
-        )();
-      }
+          if (parsed.should_alloc_buffers) {
+            return make_draw_loop<thrasher::UniqueBufferFaker>(
+              std::move(swap_buffers),
+              parsed.max_texture_dimension,
+              parsed.memory_cap,
+              parsed.delta,
+              parsed.interval,
+              parsed.should_draw
+            )();
+          } else {
+            return make_draw_loop<thrasher::SharedBufferFaker>(
+              std::move(swap_buffers),
+              parsed.max_texture_dimension,
+              parsed.memory_cap,
+              parsed.delta,
+              parsed.interval,
+              parsed.should_draw
+            )();
+          }
+        }
+      );
     }
   );
 
