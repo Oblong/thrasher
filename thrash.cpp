@@ -54,8 +54,8 @@ namespace {
     std::size_t frame_count;
     std::size_t thrash_interval;
     BufferSwapper swap_buffers;
-    forensics::RandomHelper generator;
-    forensics::QuadThrasher<Faker> thrasher;
+    thrasher::RandomHelper generator;
+    thrasher::QuadThrasher<Faker> thrasher;
     bool draw;
   };
 
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   std::size_t width = args::get(width_flag) * args::get(screen_columns_flag);
   std::size_t height = args::get(height_flag) * args::get(screen_rows_flag);
 
-  bool result = forensics::openWindow(
+  bool result = thrasher::openWindow(
     width, height, "THEFREEZE",
     [&](auto swap_buffers) {
       glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
       }
 
       if (alloc_buffers_flag) {
-        return make_draw_loop<forensics::UniqueBufferFaker>(
+        return make_draw_loop<thrasher::UniqueBufferFaker>(
           std::move(swap_buffers),
           max_texture_dimension,
           args::get(max_memory_flag),
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
           !args::get(no_draw_flag)
         )();
       } else {
-        return make_draw_loop<forensics::SharedBufferFaker>(
+        return make_draw_loop<thrasher::SharedBufferFaker>(
           std::move(swap_buffers),
           max_texture_dimension,
           args::get(max_memory_flag),

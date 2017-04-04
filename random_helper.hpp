@@ -3,7 +3,7 @@
 
 #include <random>
 
-namespace forensics {
+namespace thrasher {
   class RandomHelper final {
   public:
     float random_float(float lower_bound, float upper_bound) {

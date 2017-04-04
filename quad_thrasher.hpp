@@ -6,7 +6,7 @@
 #include <cmath>
 #include <random>
 
-namespace forensics {
+namespace thrasher {
   template <typename Faker>
   class QuadThrasher final {
     static constexpr std::size_t bytes_per_texel = 4;

@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <memory>
 
-namespace forensics {
+namespace thrasher {
   namespace detail {
     class GLFWWrapper {
     public:

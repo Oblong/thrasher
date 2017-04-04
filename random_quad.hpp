@@ -9,7 +9,7 @@
 #include <array>
 #include <memory>
 
-namespace forensics {
+namespace thrasher {
   class Filler final {
   public:
     Filler(RandomHelper &generator)
