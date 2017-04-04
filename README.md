@@ -1,4 +1,4 @@
-Some OpenGL forensic/diagnostic/debugging utilities for mezzanine.
+A texture memory thrasher.
 
 For now, this project is using the [tup](http://gittup.org/tup/) build system.
 
@@ -11,6 +11,9 @@ sudo apt-get update
 sudo apt-get install tup
 ```
 
+If you just need to build once, and you don't wish to install tup, you can just
+run the g++ command located in the file named Tupfile.
+
 Build
 -
 ```
@@ -19,10 +22,7 @@ tup init
 tup upd
 ```
 
-Currently this project contains a tool for instrumentation via LD_PRELOAD and a
-texture memory thrasher.
-
-Memory Thrasher
+Usage
 -
 
 ```
@@ -33,7 +33,12 @@ Memory Thrasher
   OPTIONS:
 
       --help                            Display this message
-      -t[BYTES], --texture-size=[BYTES] The maximum texture size in bytes
+      -t[TEXELS],
+      --texture-size=[TEXELS]           The maximum texture dimension in texels
+                                        (largest texture is TEXELSxTEXELS). Note
+                                        that if this value is more than the
+                                        driver supports, the driver's maximum
+                                        value will be used.
       -c[BYTES], --cap=[BYTES]          The base texture memory usage cap. The
                                         actual cap is this value plus the value
                                         computed from the --delta flag
