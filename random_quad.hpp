@@ -90,7 +90,7 @@ namespace thrasher {
 
   class TextureHandle final {
   public:
-    TextureHandle(GLuint handle_) : handle{handle_} {}
+    TextureHandle() : handle{0} { glGenTextures(1, &handle); }
     TextureHandle(TextureHandle const&) = delete;
     TextureHandle(TextureHandle && other) noexcept : handle{other.handle} {
       other.handle = 0;
@@ -121,17 +121,18 @@ namespace thrasher {
   class FakeTexture final {
     static constexpr std::size_t bytes_per_texel = 4;
   public:
-    template <typename Faker>
-    static FakeTexture create(GLsizei width, GLsizei height, Faker &faker) {
-      GLuint handle;
-
+    template <typename Faker, typename OnSuccess, typename OnFailure>
+    static auto create(
+      GLsizei width, GLsizei height, Faker &faker,
+      OnSuccess on_success, OnFailure on_failure
+    ) {
       GLsizei texture_size = 0;
-      glGenTextures(1, &handle);
-      if (0 == handle) return {texture_size, handle};
+      TextureHandle handle{};
+      if (!handle) return on_failure();
 
       GLsizei num_mips = std::log2(std::min(width, height));
       glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, handle);
+      glBindTexture(GL_TEXTURE_2D, handle.get());
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -149,7 +150,8 @@ namespace thrasher {
         height /= 2;
       }
 
-      return {texture_size, handle};
+      if (glGetError() != GL_NO_ERROR) return on_failure();
+      return on_success(FakeTexture{texture_size, std::move(handle)});
     }
 
     GLuint handle() const { return raii_handle.get(); }
@@ -164,7 +166,8 @@ namespace thrasher {
     }
 
   private:
-    FakeTexture(GLsizei texture_size_, GLuint handle_) : texture_size{texture_size_}, raii_handle{handle_} {}
+    FakeTexture(GLsizei texture_size_, TextureHandle raii_handle_)
+      : texture_size{texture_size_}, raii_handle{std::move(raii_handle_)} {}
 
     GLsizei texture_size;
     TextureHandle raii_handle;
@@ -172,10 +175,17 @@ namespace thrasher {
 
   class RandomQuad final {
   public:
-    template <typename Faker>
-    RandomQuad(GLsizei width, GLsizei height, Faker &faker)
-      : texture{FakeTexture::create(width, height, faker)}
-    {}
+    template <typename Faker, typename OnSuccess, typename OnFailure>
+    static auto create(
+      GLsizei width, GLsizei height, Faker &faker,
+      OnSuccess on_success, OnFailure on_failure
+    ) {
+      return FakeTexture::create(
+        width, height, faker,
+        [=](FakeTexture texture) { return on_success(RandomQuad{std::move(texture)}); },
+        on_failure
+      );
+    }
 
     operator bool() const {
       return texture;
@@ -214,6 +224,10 @@ namespace thrasher {
     }
 
   private:
+    RandomQuad(FakeTexture texture)
+      : texture{std::move(texture)}
+    {}
+
     FakeTexture texture;
   };
 }

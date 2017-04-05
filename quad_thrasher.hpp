@@ -73,8 +73,19 @@ namespace thrasher {
         std::size_t pending_texture_size_bound =
           (width * height * bytes_per_texel * 4. / 3.) + 0.5;
         if (pending_texture_size_bound > headroom_bytes) break;
-        quads.emplace_back(width, height, faker);
-        headroom_bytes -= quads.back().size_bytes();
+        RandomQuad::create(
+          width, height, faker,
+          [&](RandomQuad quad) {
+            quads.emplace_back(std::move(quad));
+            headroom_bytes -= quads.back().size_bytes();
+          },
+          [&]() {
+            fprintf(stderr, "Error creating quad!\n");
+            // Ensure that the loop will terminate
+            headroom_bytes -= pending_texture_size_bound;
+            glFlush();
+          }
+        );
       }
     }
 
