@@ -24,7 +24,7 @@ namespace thrasher {
       int loaded;
     };
 
-    inline void window_size_callback(GLFWwindow *window, int width, int height) {
+    inline void window_size_callback(GLFWwindow *, int width, int height) {
       printf("w: %d, h: %d\n", width, height);
       glViewport(0, 0, width, height);
     }

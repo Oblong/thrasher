@@ -2,7 +2,10 @@
 #include <random_helper.hpp>
 #include <window.hpp>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <args.hxx>
+#pragma GCC diagnostic pop
 
 #include <chrono>
 #include <cstdlib>
@@ -206,8 +209,9 @@ int main(int argc, char **argv) {
       return thrasher::openWindow(
         parsed.width, parsed.height, "THEFREEZE",
         [&parsed](auto swap_buffers) {
-          GLint driver_max_texture_dimension;
-          glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension);
+          GLint driver_max_texture_dimension_;
+          glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension_);
+          std::size_t driver_max_texture_dimension = driver_max_texture_dimension_;
           if (parsed.max_texture_dimension > driver_max_texture_dimension) {
             parsed.max_texture_dimension = driver_max_texture_dimension;
             fprintf(
