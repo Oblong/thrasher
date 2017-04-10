@@ -64,25 +64,6 @@ namespace {
     bool draw;
   };
 
-  template <typename Faker, typename BufferSwapper>
-  DrawLoop<Faker, BufferSwapper> make_draw_loop(
-    BufferSwapper swap_buffers,
-    std::size_t max_texture_dimension_texels,
-    std::size_t average_memory_usage_bytes,
-    std::size_t delta_bytes,
-    std::size_t thrash_interval,
-    bool draw
-  ) {
-    return {
-      std::move(swap_buffers),
-      max_texture_dimension_texels,
-      average_memory_usage_bytes,
-      delta_bytes,
-      thrash_interval,
-      draw
-    };
-  }
-
   struct ParsedArgs {
     std::size_t width;
     std::size_t height;
@@ -104,6 +85,21 @@ namespace {
       printf("should draw: %s\n", should_draw ? "true" : "false");
     }
   };
+
+  template <typename Faker, typename BufferSwapper>
+  DrawLoop<Faker, BufferSwapper> make_draw_loop(
+    BufferSwapper swap_buffers,
+    ParsedArgs const &parsed
+  ) {
+    return {
+      std::move(swap_buffers),
+      parsed.max_texture_dimension,
+      parsed.memory_cap,
+      parsed.delta,
+      parsed.interval,
+      parsed.should_draw
+    };
+  }
 
   template <typename Callback>
   bool parse_args(int argc, char **argv, Callback callback) {
@@ -223,21 +219,11 @@ int main(int argc, char **argv) {
 
           if (parsed.should_alloc_buffers) {
             return make_draw_loop<thrasher::UniqueBufferFaker>(
-              std::move(swap_buffers),
-              parsed.max_texture_dimension,
-              parsed.memory_cap,
-              parsed.delta,
-              parsed.interval,
-              parsed.should_draw
+              std::move(swap_buffers), parsed
             )();
           } else {
             return make_draw_loop<thrasher::SharedBufferFaker>(
-              std::move(swap_buffers),
-              parsed.max_texture_dimension,
-              parsed.memory_cap,
-              parsed.delta,
-              parsed.interval,
-              parsed.should_draw
+              std::move(swap_buffers), parsed
             )();
           }
         }
