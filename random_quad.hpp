@@ -107,7 +107,7 @@ namespace thrasher {
       if (0 != handle) glDeleteTextures(1, &handle);
     }
 
-    operator bool() const {
+    explicit operator bool() const {
       return handle != 0;
     }
 
@@ -156,8 +156,8 @@ namespace thrasher {
 
     GLuint handle() const { return raii_handle.get(); }
 
-    operator bool() const {
-      return raii_handle;
+    explicit operator bool() const {
+      return static_cast<bool>(raii_handle);
     }
 
     GLsizei size_bytes() const {
@@ -187,8 +187,8 @@ namespace thrasher {
       );
     }
 
-    operator bool() const {
-      return texture;
+    explicit operator bool() const {
+      return static_cast<bool>(texture);
     }
 
     void draw(RandomHelper &generator) const {
