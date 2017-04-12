@@ -19,7 +19,7 @@ namespace thrasher {
       GLFWWrapper& operator=(GLFWWrapper const&) = delete;
       GLFWWrapper& operator=(GLFWWrapper&&) = delete;
 
-      operator bool() { return loaded; }
+      explicit operator bool() const { return loaded; }
     private:
       int loaded;
     };
@@ -33,7 +33,7 @@ namespace thrasher {
   template <typename Callback>
   inline bool openWindow(int width, int height, char const *title, Callback callback) {
     static detail::GLFWWrapper wrapper{};
-    if (!wrapper) return false;
+    if (!static_cast<bool>(wrapper)) return false;
 
     std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> window{
       glfwCreateWindow(width, height, title, NULL, NULL),
