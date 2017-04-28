@@ -1,5 +1,2 @@
-*.so
-/playback
-/compile_commands.json
-/.tup
-/thrash
+/build_debug_clang
+/build

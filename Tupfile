@@ -1,1 +1,0 @@
-: thrash.cpp |> g++ -std=c++14 -O0 -g -Wall -Wextra -Wfatal-errors -fmax-errors=5 -o thrash thrash.cpp -I. -I./bundle/args -lglfw -lGL |> thrash

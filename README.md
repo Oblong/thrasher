@@ -1,25 +1,34 @@
 A texture memory thrasher.
 
-For now, this project is using the [tup](http://gittup.org/tup/) build system.
+This project is built using [meson](http://mesonbuild.com).
 
 Dependencies (Ubuntu)
 -
 ```
 sudo apt-get install libglfw3-dev
-sudo apt-add-repository 'deb http://ppa.launchpad.net/anatol/tup/ubuntu precise main'
-sudo apt-get update
-sudo apt-get install tup
 ```
 
-If you just need to build once, and you don't wish to install tup, you can just
-run the g++ command located in the file named Tupfile.
+Meson is a young project, and Ubuntu's version lacks many features. The
+following is recommended:
+```
+sudo apt-get install python-pip3
+pip3 install meson
+```
+
+But this may work: `sudo apt-get install meson`
 
 Build
 -
 ```
 git submodule update --init
-tup init
-tup upd
+meson build --buildtype=release
+ninja -C build
+```
+
+Example Invocation
+-
+```
+build/thrash -w 1920 -h 1080 -c 3 -t 1000 -m 1000000000
 ```
 
 Usage
@@ -58,8 +67,6 @@ Usage
       --no-draw                         Do not draw any quads. (Textures are
                                         still created/deleted.)
 ```
-
-Example invocation: `./thrash -w 1920 -h 1080 -c 3 -t 1000 -m 1000000000`
 
 **WARNING**: The develop branch is partially used for synchronization, and as
 such it is subject to the occasional force push.
