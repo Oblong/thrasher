@@ -21,7 +21,7 @@ namespace thrasher {
 
       explicit operator bool() const { return loaded; }
     private:
-      int loaded;
+      bool loaded;
     };
 
     inline void window_size_callback(GLFWwindow *, int width, int height) {
