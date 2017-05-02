@@ -36,7 +36,7 @@ namespace thrasher {
     if (!static_cast<bool>(wrapper)) return false;
 
     std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> window{
-      glfwCreateWindow(width, height, title, NULL, NULL),
+      glfwCreateWindow(width, height, title, nullptr, nullptr),
       &glfwDestroyWindow
     };
 
