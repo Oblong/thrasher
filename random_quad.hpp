@@ -150,7 +150,10 @@ namespace thrasher {
         height /= 2;
       }
 
-      if (glGetError() != GL_NO_ERROR) return on_failure();
+      bool error = false;
+      while (glGetError() != GL_NO_ERROR) { error = true; }
+      if (error) return on_failure();
+
       return on_success(FakeTexture{texture_size, std::move(handle)});
     }
 
