@@ -2,7 +2,7 @@ A texture memory thrasher.
 
 This project is built using [meson](http://mesonbuild.com).
 
-Dependencies (Ubuntu)
+Dependencies (Ubuntu 16.04)
 -
 ```
 sudo apt-get install libglfw3-dev

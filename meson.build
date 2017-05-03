@@ -23,6 +23,7 @@ pkg = import('pkgconfig')
 thrash = executable(
   'thrash'
 , 'thrash.cpp'
+, install: true
 , include_directories : incdir
 , dependencies : [glfwdep, gldep]
 , cpp_args : extra_args
