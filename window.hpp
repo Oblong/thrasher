@@ -24,14 +24,19 @@ namespace thrasher {
       bool loaded;
     };
 
-    inline void window_size_callback(GLFWwindow *, int width, int height) {
+    extern "C" inline void window_size_callback(GLFWwindow *, int width, int height) {
       printf("w: %d, h: %d\n", width, height);
       glViewport(0, 0, width, height);
     }
   }
 
   template <typename Callback>
-  inline bool openWindow(int width, int height, char const *title, Callback callback) {
+  inline bool openWindow(
+    int width,
+    int height,
+    char const *title,
+    Callback callback
+  ) {
     static detail::GLFWWrapper wrapper{};
     if (!static_cast<bool>(wrapper)) return false;
 
