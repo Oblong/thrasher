@@ -11,7 +11,7 @@ sudo apt-get install libglfw3-dev
 Meson is a young project, and Ubuntu's version lacks many features. The
 following is recommended:
 ```
-sudo apt-get install python-pip3
+sudo apt-get install python3-pip
 pip3 install meson
 ```
 
