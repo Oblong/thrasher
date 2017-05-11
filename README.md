@@ -5,7 +5,7 @@ This project is built using [meson](http://mesonbuild.com).
 Dependencies (Ubuntu 16.04)
 -
 ```
-sudo apt-get install libglfw3-dev
+sudo apt-get install libglfw3-dev ninja-build
 ```
 
 Meson is a young project, and Ubuntu's version lacks many features. The
