@@ -8,10 +8,21 @@
 
 namespace thrasher {
   namespace detail {
+    extern "C" inline void error_callback(int error, const char* description) {
+      printf("glfw error: 0x%x, desc: %s\n", error, description);
+    }
+
+    extern "C" inline void window_size_callback(GLFWwindow *, int width, int height) {
+      printf("w: %d, h: %d\n", width, height);
+      glViewport(0, 0, width, height);
+    }
+
     class GLFWWrapper {
     public:
       GLFWWrapper() : loaded{glfwInit() != 0} {
         if (!loaded) fprintf(stderr, "Failed to load GLFW\n");
+
+        glfwSetErrorCallback(&detail::error_callback);
       }
       ~GLFWWrapper() { if (loaded) glfwTerminate(); }
       GLFWWrapper(GLFWWrapper const&) = delete;
@@ -23,22 +34,20 @@ namespace thrasher {
     private:
       bool loaded;
     };
-
-    extern "C" inline void window_size_callback(GLFWwindow *, int width, int height) {
-      printf("w: %d, h: %d\n", width, height);
-      glViewport(0, 0, width, height);
-    }
   }
 
   template <typename Callback>
   inline bool openWindow(
     int width,
     int height,
+    bool double_buffer,
     char const *title,
     Callback callback
   ) {
     static detail::GLFWWrapper wrapper{};
     if (!static_cast<bool>(wrapper)) return false;
+
+    glfwWindowHint(GLFW_DOUBLEBUFFER, double_buffer);
 
     std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> window{
       glfwCreateWindow(width, height, title, nullptr, nullptr),

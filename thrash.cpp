@@ -23,7 +23,8 @@ namespace {
       std::size_t average_memory_usage_bytes,
       std::size_t delta_bytes,
       std::size_t thrash_interval_,
-      bool draw_
+      bool draw_,
+      bool double_buffer_
     ) : frame_count{0}
       , thrash_interval{thrash_interval_}
       , swap_buffers{std::move(swap_buffers)}
@@ -35,6 +36,7 @@ namespace {
           max_texture_dimension_texels
         }
       , draw{draw_}
+      , double_buffer{double_buffer_}
     {}
 
     bool operator()() {
@@ -49,7 +51,10 @@ namespace {
         if (draw) {
           thrasher.draw(generator);
         }
-        swap_buffers();
+        if (double_buffer)
+          swap_buffers();
+        else
+          glFlush();
         ++frame_count;
       }
 
@@ -62,6 +67,7 @@ namespace {
     thrasher::RandomHelper generator;
     thrasher::QuadThrasher<Faker> thrasher;
     bool draw;
+    bool double_buffer;
   };
 
   struct ParsedArgs {
@@ -73,6 +79,7 @@ namespace {
     std::size_t interval;
     bool should_alloc_buffers;
     bool should_draw;
+    bool double_buffer;
 
     void print() const {
       printf("width: %lu\n", width);
@@ -83,6 +90,7 @@ namespace {
       printf("interval: %lu frames\n", interval);
       printf("should alloc buffers: %s\n", should_alloc_buffers ? "true" : "false");
       printf("should draw: %s\n", should_draw ? "true" : "false");
+      printf("double buffer: %s\n", double_buffer ? "true" : "false");
     }
   };
 
@@ -97,7 +105,8 @@ namespace {
       parsed.memory_cap,
       parsed.delta,
       parsed.interval,
-      parsed.should_draw
+      parsed.should_draw,
+      parsed.double_buffer
     };
   }
 
@@ -163,6 +172,12 @@ namespace {
       "Do not draw any quads. (Textures are still created/deleted.)",
       {"no-draw"}
     };
+    args::Flag single_buffer_flag{
+      arg_parser,
+      "single_buffer",
+      "Single buffered configuration",
+      {"single-buffer"}
+    };
 
     try {
       arg_parser.ParseCLI(argc, argv);
@@ -194,6 +209,7 @@ namespace {
     parsed.interval = args::get(interval_flag);
     parsed.should_alloc_buffers = alloc_buffers_flag;
     parsed.should_draw = !args::get(no_draw_flag);
+    parsed.double_buffer = !args::get(single_buffer_flag);
 
     return callback(parsed);
   }
@@ -203,7 +219,7 @@ int main(int argc, char **argv) {
   bool result = parse_args(argc, argv,
     [](auto &parsed) {
       return thrasher::openWindow(
-        parsed.width, parsed.height, "THEFREEZE",
+        parsed.width, parsed.height, parsed.double_buffer, "THEFREEZE",
         [&parsed](auto swap_buffers) {
           GLint driver_max_texture_dimension_;
           glGetIntegerv(GL_MAX_TEXTURE_SIZE, &driver_max_texture_dimension_);
