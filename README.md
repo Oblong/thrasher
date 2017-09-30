@@ -8,6 +8,14 @@ Dependencies (Ubuntu 16.04)
 sudo apt-get install libglfw3-dev ninja-build
 ```
 
+Dependencies (Arch Linux)
+-
+```
+sudo pacman -S glfw3 ninja meson
+```
+Meson on Ubuntu
+-
+
 Meson is a young project, and Ubuntu's version lacks many features. The
 following is recommended:
 ```
