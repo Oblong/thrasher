@@ -1,23 +1,28 @@
+# thrasher
+
 A texture memory thrasher.
 
 This project is built using [meson](http://mesonbuild.com).
 
-Dependencies (Ubuntu 16.04)
--
+## Dependencies
+
+Ubuntu 16.04
+
 ```
 sudo apt-get install libglfw3-dev ninja-build
 ```
 
-Dependencies (Arch Linux)
--
+Arch Linux
+
 ```
 sudo pacman -S glfw3 ninja meson
 ```
+
 Meson on Ubuntu
--
 
 Meson is a young project, and Ubuntu's version lacks many features. The
 following is recommended:
+
 ```
 sudo apt-get install python3-pip
 pip3 install meson
@@ -25,22 +30,21 @@ pip3 install meson
 
 But this may work: `sudo apt-get install meson`
 
-Build
--
+## Build
+
 ```
 git submodule update --init
 meson build --buildtype=release
 ninja -C build
 ```
 
-Example Invocation
--
+## Example Invocation
+
 ```
 build/thrash --width=1920 --height=1080 --columns=3 --texture-size=1000 --memory-cap=1000000000
 ```
 
-Usage
--
+## Usage
 
 ```
   ./thrash {OPTIONS}
