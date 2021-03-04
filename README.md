@@ -36,7 +36,7 @@ ninja -C build
 Example Invocation
 -
 ```
-build/thrash -w 1920 -h 1080 -c 3 -t 1000 -m 1000000000
+build/thrash --width=1920 --height=1080 --columns=3 --texture-size=1000 --memory-cap=1000000000
 ```
 
 Usage
